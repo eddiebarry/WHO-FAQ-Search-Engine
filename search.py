@@ -37,13 +37,13 @@ class SearchEngine:
         return self.searcher.doc(doc_id)
 
     def convert_to_json(self, scoreDocs):
-        
+        pass
 
 if __name__ == '__main__':
 
     lucene.initVM(vmargs=['-Djava.awt.headless=true'])
     # Search Engine
-    indexDir = "/root/pylucene/FAQ_Answer_project/search_engine/IndexFiles.Index"
+    indexDir = "./IndexFiles.Index"
     SearchEngineTest = SearchEngine(indexDir)
     
 

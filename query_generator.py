@@ -44,4 +44,6 @@ if __name__ == '__main__':
                     }
     query_string = "what is my name "
     
-    query_gen.build_query(query_string, boosting_tokens,"OR_QUERY")
+    search_query = query_gen.build_query(query_string, boosting_tokens,"OR_QUERY")
+
+    print(search_query)

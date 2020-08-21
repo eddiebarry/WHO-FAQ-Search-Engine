@@ -70,5 +70,5 @@ if __name__ == '__main__':
     lucene.initVM(vmargs=['-Djava.awt.headless=true'])
     print( 'lucene', lucene.VERSION)
 
-    IndexTest = IndexFiles("/root/pylucene/FAQ_Answer_project/search_engine/IndexFiles.Index",StandardAnalyzer())
-    IndexTest.indexFolder("/root/pylucene/FAQ_Answer_project/test_data")
+    IndexTest = IndexFiles("./IndexFiles.Index",StandardAnalyzer())
+    IndexTest.indexFolder("./test_data")
