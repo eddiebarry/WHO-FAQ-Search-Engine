@@ -11,6 +11,7 @@ from org.apache.lucene.index import \
     FieldInfo, IndexWriter, IndexWriterConfig, IndexOptions
 from org.apache.lucene.store import SimpleFSDirectory
 
+#TODO: Documentation
 class IndexFiles:
 
     def __init__(self, storeDir, analyzer):
@@ -65,6 +66,7 @@ class IndexFiles:
 
             except Exception as e:
                 print( "Failed in indexDocs:", e)
+
 
 if __name__ == '__main__':
     lucene.initVM(vmargs=['-Djava.awt.headless=true'])
