@@ -66,6 +66,8 @@ class IndexFiles:
 
             except Exception as e:
                 print( "Failed in indexDocs:", e)
+    
+    # TODO : write a single json file to index and commit
 
 
 if __name__ == '__main__':
