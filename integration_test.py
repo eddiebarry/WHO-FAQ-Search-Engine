@@ -8,11 +8,26 @@ from org.apache.lucene.analysis.standard import StandardAnalyzer
 lucene.initVM(vmargs=['-Djava.awt.headless=true'])
 
 # Index generator
+""" 
+First we need to create an index which is searchable by the lucene
+index. Relevant code in Index.py
+{
+  "id": "doc1",
+  "contents": "contents of doc one.",
+  "keywords": "Vaccine 1",
+  "Disease": "Disease 1",
+}
+This is the structure of the json file
+"""
 IndexTest = IndexFiles("./IndexFiles.Index",StandardAnalyzer())
 IndexTest.indexFolder("./test_data")
 indexDir = IndexTest.getIndexDir()
 
 # Query generator
+"""
+Using the user entered data, we generate queries which can be used
+to return results from the lucene index. Relevant code in query_generator.py
+"""
 QueryGenTest = QueryGenerator(StandardAnalyzer())
 boosting_tokens = {
                     "keywords":"love",    
@@ -23,6 +38,10 @@ query = QueryGenTest.build_query(query_string, boosting_tokens, "OR_QUERY")
 
 
 # Search Engine
+"""
+Using the generated indexes and queries previously, get results for the 
+user query. Relevant code in search_engine.py
+"""
 SearchEngineTest = SearchEngine(indexDir)
 
 hits = SearchEngineTest.search(query)
