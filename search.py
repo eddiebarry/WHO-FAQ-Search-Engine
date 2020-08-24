@@ -134,7 +134,11 @@ class SearchEngine:
     def return_doc(self,doc_id):
         """ 
         A function for returning a document from the lucene index
+<<<<<<< HEAD
         using it's unique internal identifier
+=======
+        using it's uniquer internal identifier
+>>>>>>> 91976c40a5d0cba79ec2c9d2f56e8453f12cafe3
         """
         return self.searcher.doc(doc_id)
 

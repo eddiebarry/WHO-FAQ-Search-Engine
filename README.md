@@ -5,7 +5,15 @@
 
 ### Data definition
 ```
-TBA
+Json files can be added to the index if they follow the following format
+{
+  "id": "doc1",
+  "contents": "contents of doc one.",
+  "keywords": "Vaccine 1",
+  "Disease": "Disease 1",
+  
+  ...
+}
 ```
 
 ### To run

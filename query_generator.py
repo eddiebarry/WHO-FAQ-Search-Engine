@@ -112,6 +112,10 @@ class QueryGenerator:
 
             #TODO : Check Better methods of generating queries
             return (query_string + boost_string).replace('/','\/')
+<<<<<<< HEAD
+=======
+
+>>>>>>> 91976c40a5d0cba79ec2c9d2f56e8453f12cafe3
 
 # TODO: Document
 if __name__ == '__main__':
