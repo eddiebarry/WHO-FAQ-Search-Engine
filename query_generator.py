@@ -112,7 +112,6 @@ class QueryGenerator:
 
             #TODO : Check Better methods of generating queries
             return (query_string + boost_string).replace('/','\/')
-            
 # TODO: Document
 if __name__ == '__main__':
     lucene.initVM(vmargs=['-Djava.awt.headless=true'])
