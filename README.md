@@ -29,3 +29,6 @@ python integration_test.py
 
 ### For an example of how the search engine works, see
 integration_test.py
+
+### Special thanks to
+- The [pygaggle](https://github.com/castorini/pygaggle) project especially their MSMarcoRerankin [paper](https://arxiv.org/pdf/2003.06713.pdf)
