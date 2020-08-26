@@ -104,6 +104,7 @@ class QueryGenerator:
         """
 
         if boost_val:
+            # TODO : Boost a token according to a per field value
             boost_string = ""
             for x in boosting_tokens:
                 for token in boosting_tokens[x]:
