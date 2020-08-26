@@ -16,6 +16,7 @@ RUN make all install JCC='python -m jcc' ANT=ant PYTHON=python NUM_FILES=8
 
 WORKDIR /usr/src
 RUN rm -rf pylucene
-RUN git clone https://github.com/eddiebarry/WHO-FAQ-Search-Engine.git
 RUN pip install tokenizers==0.7 transformers==2.10.0 torch==1.4.0
+
+RUN git clone https://github.com/eddiebarry/WHO-FAQ-Search-Engine.git
 WORKDIR /usr/src/WHO-FAQ-Search-Engine

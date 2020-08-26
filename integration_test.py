@@ -34,7 +34,8 @@ boosting_tokens = {
                     "subject1":"care"
                 }
 query_string = "contents"
-query = QueryGenTest.build_query(query_string, boosting_tokens, "OR_QUERY")
+query = QueryGenTest.build_query(query_string, \
+  boosting_tokens, "OR_QUERY", field="contents")
 
 
 # Search Engine
@@ -42,12 +43,11 @@ query = QueryGenTest.build_query(query_string, boosting_tokens, "OR_QUERY")
 Using the generated indexes and queries previously, get results for the 
 user query. Relevant code in search_engine.py
 """
-SearchEngineTest = SearchEngine(indexDir)
+SearchEngineTest = SearchEngine(indexDir, rerank=True)
 
-hits = SearchEngineTest.search(query)
-search_docs  = hits.scoreDocs
-print("%s total matching documents." % len(search_docs))
+hits = SearchEngineTest.search(query, \
+        query_string=query_string, query_field="contents")
+print("%s total matching documents." % len(hits))
 
-for scoreDoc in search_docs:
-    doc = SearchEngineTest.return_doc(scoreDoc.doc)
-    print("contents : " , doc.get("contents"), "\nscore : ", scoreDoc.score)
+for doc in hits:
+    print("contents : " , doc[1], "\nscore : ", doc[0])

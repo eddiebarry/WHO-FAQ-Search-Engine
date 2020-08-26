@@ -8,7 +8,7 @@ from org.apache.lucene.index import DirectoryReader
 from org.apache.lucene.queryparser.classic import QueryParser
 from org.apache.lucene.store import SimpleFSDirectory
 from org.apache.lucene.search import IndexSearcher
-
+from rerank.T5Reranker import T5Ranker
 
 class SearchEngine:
     """ 
@@ -34,6 +34,8 @@ class SearchEngine:
         A Lucene Index Searcher
     analyser : Any Lucene Analyzer
         A Lucene Analyzer for preprocessing text data
+    reranker : T5Reranker
+        An ML model which reranks the documents according to relevance
 
 
     Methods
@@ -56,7 +58,7 @@ class SearchEngine:
         Returns the top n results according to the scoring function
     """
 
-    def __init__(self, index_dir):
+    def __init__(self, index_dir, rerank=False):
         """
         The search class needs to be initialised with a directory which
         points to the lucene index which is being served
@@ -78,6 +80,11 @@ class SearchEngine:
         
         # TODO: Explore different kinds of analyzers
         self.analyzer = StandardAnalyzer()
+
+        self.reranker = None
+        if rerank:
+            self.reranker = T5Ranker()
+            print("Reranker set")
     
     def update(self, new_dir):
         """
@@ -105,7 +112,8 @@ class SearchEngine:
             IndexSearcher(DirectoryReader.open(directory))
         self.analyzer = StandardAnalyzer()
     
-    def search(self, query, top_n=50, return_json=False):
+    def search(self, query, top_n=50, return_json=False, \
+        query_string=None, query_field=None):
         """
         This function takes a lucene query which can be created from
         the lucene query parser class and performs a search on the index
@@ -118,13 +126,35 @@ class SearchEngine:
             query_generator.py
         top_n : Int
             The number of top results we want our search to return
-        return_json: Bool
+        return_json : Bool
             If true, the search results are jsonified and returned
             else the search results are return in the Lucene Document format
+        query_string : String
+            The string entered by the user
+        rerank_fiels : String
+            The name of the field against which the reranker must be run
         """
 
         # TODO : Use BM25 with Anserini hyper params
         scoreDocs = self.searcher.search(query, top_n)
+
+        # TODO : Add support for reranking multiple fields
+        if self.reranker and query_string and query_field:
+            text = [[document.doc, \
+                self.return_doc(document.doc).get(query_field)] \
+                for document in scoreDocs.scoreDocs]
+
+            reranked = self.reranker.rerank(query_string, text)
+            reranked.sort(key=lambda x: x.score, reverse=True)
+
+            scoreDocs = [[x.score, x.text] for x in reranked]
+        else:
+            return_docs = [ (self.return_doc(file.doc), file.score) \
+                for file in scoreDocs.scoreDocs]
+
+            scoreDocs = [ [doc[1], doc[0].get("contents")] \
+                for doc in return_docs]
+
         if return_json:
             jsonDocs = self.convert_to_json(scoreDocs)
             return jsonDocs
@@ -134,11 +164,7 @@ class SearchEngine:
     def return_doc(self,doc_id):
         """ 
         A function for returning a document from the lucene index
-<<<<<<< HEAD
-        using it's unique internal identifier
-=======
         using it's uniquer internal identifier
->>>>>>> 91976c40a5d0cba79ec2c9d2f56e8453f12cafe3
         """
         return self.searcher.doc(doc_id)
 
@@ -156,16 +182,15 @@ if __name__ == '__main__':
     lucene.initVM(vmargs=['-Djava.awt.headless=true'])
     # Search Engine
     indexDir = "./IndexFiles.Index"
-    SearchEngineTest = SearchEngine(indexDir)
+    SearchEngineTest = SearchEngine(indexDir, rerank=True)
     
 
     query_string = "contents of"
     query = QueryParser("contents", StandardAnalyzer() ).parse(query_string)
     
-    hits = SearchEngineTest.search(query)
-    search_docs  = hits.scoreDocs
-    print("%s total matching documents." % len(search_docs))
+    hits = SearchEngineTest.search(query, \
+        query_string=query_string, query_field="contents")
+    print("%s total matching documents." % len(hits))
 
-    for scoreDoc in search_docs:
-        doc = SearchEngineTest.return_doc(scoreDoc.doc)
-        print("contents : " , doc.get("contents"), "\nscore : ", scoreDoc.score)
+    for doc in hits:
+        print("contents : " , doc[1], "\nscore : ", doc[0])
