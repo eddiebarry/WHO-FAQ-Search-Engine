@@ -30,8 +30,8 @@ to return results from the lucene index. Relevant code in query_generator.py
 """
 QueryGenTest = QueryGenerator(StandardAnalyzer())
 boosting_tokens = {
-                    "keywords":"love",    
-                    "subject1":"care"
+                    "keywords":["love"],    
+                    "subject1":["care"]
                 }
 query_string = "contents"
 query = QueryGenTest.build_query(query_string, \

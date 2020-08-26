@@ -52,8 +52,8 @@ class QueryGenerator:
 
         The format of the boosting tokens is
         boosting_tokens = {
-                    "fiels1":"love",    
-                    "field2":"care"
+            "keywords":["love"],    
+            "subject1":["care"]
         }
 
         Inputs
@@ -87,8 +87,8 @@ class QueryGenerator:
         
         The format of the boosting tokens is
         boosting_tokens = {
-                    "fiels1":"love",    
-                    "field2":"care"
+            "keywords":["love"],    
+            "subject1":["care"]
         }
 
         Inputs
@@ -104,14 +104,15 @@ class QueryGenerator:
         """
 
         if boost_val:
-            # TODO : Boost a token according to a per field value
             boost_string = ""
             for x in boosting_tokens:
-                boost_string = boost_string + " OR " + \
-                    str(x) + ":" + str(boosting_tokens[x]) + "^" + str(boost_val)
+                for token in boosting_tokens[x]:
+                    boost_string = boost_string + " OR " + \
+                        str(x) + ":" + str(token) + "^" + str(boost_val)
 
             #TODO : Check Better methods of generating queries
             return (query_string + boost_string).replace('/','\/')
+            
 # TODO: Document
 if __name__ == '__main__':
     lucene.initVM(vmargs=['-Djava.awt.headless=true'])
@@ -119,9 +120,9 @@ if __name__ == '__main__':
     query_gen = QueryGenerator(StandardAnalyzer())
 
     boosting_tokens = {
-                        "title":"cabana",
-                        "path":"root",    
-                        "subject1":"subj"
+                        "title":["cabana","banana"],
+                        "path":["root"],    
+                        "subject1":["subj"]
                     }
     query_string = "what is my name "
     
