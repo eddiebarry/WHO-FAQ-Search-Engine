@@ -44,7 +44,7 @@ class QueryGenerator:
         self.analyzer = analyzer
     
     def build_query(self, query_string, boosting_tokens, query_type, \
-        field="contents"):
+        field="contents", boost_val=1.05):
         """
         First, the user query is matched againt the field specifiec in 
         "field", then the boosting tokens are matched against the keys 
@@ -75,7 +75,7 @@ class QueryGenerator:
             # TODO : add ability to have a per field unique boost value
             query_string = \
                 self.get_or_query_string(query_string, \
-                boosting_tokens, boost_val=1.05)
+                boosting_tokens, boost_val=boost_val)
 
         query = QueryParser(field, self.analyzer).parse(query_string)
         return query

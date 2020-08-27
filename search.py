@@ -152,7 +152,7 @@ class SearchEngine:
             return_docs = [ (self.return_doc(file.doc), file.score) \
                 for file in scoreDocs.scoreDocs]
 
-            scoreDocs = [ [doc[1], doc[0].get("contents")] \
+            scoreDocs = [ [doc[1], doc[0].get(query_field)] \
                 for doc in return_docs]
 
         if return_json:
