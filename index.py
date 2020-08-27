@@ -147,7 +147,7 @@ class IndexFiles:
 
                 for x in jsonObj.keys():
                     # TODO : Check if key values are strings
-                    doc.add(Field(x, jsonObj[x], self.doc_and_freq_fieldtype))
+                    doc.add(Field(x.replace(" ","_"), jsonObj[x], self.doc_and_freq_fieldtype))
 
                 self.writer.addDocument(doc)
 

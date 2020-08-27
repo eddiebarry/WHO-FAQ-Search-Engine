@@ -109,7 +109,7 @@ class QueryGenerator:
             for x in boosting_tokens:
                 for token in boosting_tokens[x]:
                     boost_string = boost_string + " OR " + \
-                        str(x) + ":" + str(token) + "^" + str(boost_val)
+                    str(x).replace(" ","_") + ":" + str(token) + "^" + str(boost_val)
 
             #TODO : Check Better methods of generating queries
             return (query_string + boost_string).replace('/','\/')
