@@ -9,6 +9,7 @@ from org.apache.lucene.queryparser.classic import QueryParser
 from org.apache.lucene.store import SimpleFSDirectory
 from org.apache.lucene.search import IndexSearcher
 
+from synonym_expansion import SynonymExpander
 
 class QueryGenerator:
     """
@@ -39,10 +40,16 @@ class QueryGenerator:
         This method generates a OR query for the given boosting tokens
     """
 
-    def __init__(self, analyzer):
+    def __init__(self, analyzer, use_synonyms=False):
         """ Take a standard analyzer for query generation """
         self.analyzer = analyzer
+        self.use_synonyms = use_synonyms
+
+        if self.use_synonyms:
+            self.synonym_expander = SynonymExpander()
+        
     
+    # TODO : Remove Stop words
     def build_query(self, query_string, boosting_tokens, query_type, \
         field="contents", boost_val=1.05):
         """
@@ -72,6 +79,8 @@ class QueryGenerator:
         # TODO : sanitize query string sp that false queries dont break
         # the system. Prevent sql njection type attacks
         if query_type == "OR_QUERY":
+            if self.use_synonyms and self.synonym_expander:
+                query_string = self.synonym_expander.expand(query_string)
             # TODO : add ability to have a per field unique boost value
             query_string = \
                 self.get_or_query_string(query_string, \
@@ -114,7 +123,7 @@ class QueryGenerator:
             #TODO : Check Better methods of generating queries
             return (query_string + boost_string).replace('/','\/')
             
-# TODO: Document
+# TODO: Write Tests
 if __name__ == '__main__':
     lucene.initVM(vmargs=['-Djava.awt.headless=true'])
     

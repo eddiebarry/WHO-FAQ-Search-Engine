@@ -66,6 +66,10 @@ class IndexFiles:
     indexJsonPath(jsonpath)
         Reads the json file which jsonpath points to and adds all the 
         key value pairs present inside to the index
+    
+    indexJsonArray(jsonArray, list_name)
+        Adds all the dictionary objects present in the list_name field
+        of the jsonArray to the index
     """ 
 
     def __init__(self, storeDir, analyzer=None):
@@ -118,7 +122,7 @@ class IndexFiles:
         """
         Adds all the json files present in indexDir to the index
         """
-        print( 'commit index')
+        print( 'Writing directory to index')
         self.writer = IndexWriter(self.store, self.config)
         # TODO : Check if indexDir is a real index
         for filename in sorted(os.listdir(indexDir)):
@@ -154,6 +158,31 @@ class IndexFiles:
             except Exception as e:
                 print( "Failed in indexDocs:", e)
     
+    # TODO : Store the created Json Objects
+    def indexJsonArray(self, jsonArray, list_name = "QA_Pairs"):
+        """
+        Takes all objects inside the json array and adds them to the
+        index
+        """
+        print( 'writing json array to index')
+        self.writer = IndexWriter(self.store, self.config)
+        for jsonObj in jsonArray[list_name]:
+            try:    
+                doc = Document()
+
+                for x in jsonObj.keys():
+                    # TODO : Check if key values are strings
+                    doc.add(Field(x.replace(" ","_"), jsonObj[x], self.doc_and_freq_fieldtype))
+
+                self.writer.addDocument(doc)
+
+            except Exception as e:
+                print( "Failed in indexDocs:", e)
+        
+        self.writer.commit()
+        self.writer.close()
+        print( 'done')
+
     # TODO : write a single json file to index and commit
 
 
@@ -163,3 +192,6 @@ if __name__ == '__main__':
 
     IndexTest = IndexFiles("./IndexFiles.Index")
     IndexTest.indexFolder("./test_data")
+
+    print(IndexTest.getIndexDir())
+    

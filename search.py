@@ -10,6 +10,7 @@ from org.apache.lucene.store import SimpleFSDirectory
 from org.apache.lucene.search import IndexSearcher
 from rerank.T5Reranker import T5Ranker
 
+# TOOD : Migrate to solr when scaling
 class SearchEngine:
     """ 
     A pylucene based search class
@@ -70,6 +71,9 @@ class SearchEngine:
         ------
         index_dir : String
             A string which is the path to a lucene based index
+        rerank : Bool
+            A Flag for wether a simple ML reranker must be used as part
+            of the pipeline
         """
 
         # TODO: Check that the indexdir points to a valid lucene index
@@ -177,12 +181,27 @@ class SearchEngine:
         pass
 
 
-# TODO document
+# TODO : Write Tests
 if __name__ == '__main__':
     lucene.initVM(vmargs=['-Djava.awt.headless=true'])
-    # Search Engine
+    # Search Engine with reranking
     indexDir = "./IndexFiles.Index"
     SearchEngineTest = SearchEngine(indexDir, rerank=True)
+    
+
+    query_string = "contents of"
+    query = QueryParser("contents", StandardAnalyzer() ).parse(query_string)
+    
+    hits = SearchEngineTest.search(query, \
+        query_string=query_string, query_field="contents")
+    print("%s total matching documents." % len(hits))
+
+    for doc in hits:
+        print("contents : " , doc[1], "\nscore : ", doc[0])
+
+    # No reranking
+    indexDir = "./IndexFiles.Index"
+    SearchEngineTest = SearchEngine(indexDir, rerank=False)
     
 
     query_string = "contents of"

@@ -1,0 +1,49 @@
+{
+    "QA_Pairs":[
+        {
+            "Country": "",
+            "Disease 1": "",
+            "Disease 2": "",
+            "Keyword": "Infants & young children",
+            "Master Answer": "Yes. You can make an appointment at your local public health unit to have your child immunized.\u00a0 A public health nurse can recommend and provide your child's vaccines and answer any questions you may have.\u00a0 You can find the contact information for your local public health unit here:\u00a0http://immunizebc.ca/finder.\u00a0\n",
+            "Master Question": "I did not immunize my child as an infant. She is now six and I have changed my stance. Can she be immunized now?\n",
+            "Other - time, condition, symptom etc": "",
+            "Subject - Person": "Child",
+            "Subject 1 - Immunization": "Immunization General",
+            "Subject 2 - Vaccination / General": "",
+            "Subject Sex": "",
+            "Vaccine": "",
+            "Who is writing this": "Parent"
+        },
+        {
+            "Country": "",
+            "Disease 1": "Chickenpox",
+            "Disease 2": "",
+            "Keyword": "Chickenpox vaccines",
+            "Master Answer": "A child who has had chickenpox before their 1st birthday should still get the vaccine as they may not have developed a long lasting immunity and could get chickenpox again.\nFor more information about chickenpox and the chickenpox vaccine, visit our chickenpox page. \u00a0\u00a0\n",
+            "Master Question": "If a child of 9 months had chickenpox does he require vaccine at 12 months?\n",
+            "Other - time, condition, symptom etc": "",
+            "Subject - Person": "Infant/baby",
+            "Subject 1 - Immunization": "Immunization Required",
+            "Subject 2 - Vaccination / General": "",
+            "Subject Sex": "Male",
+            "Vaccine": "Varicella (Chickenpox)",
+            "Who is writing this": "Unknown "
+        },
+        {
+            "Country": "",
+            "Disease 1": "Chickenpox",
+            "Disease 2": "",
+            "Keyword": "Shingles vaccines",
+            "Master Answer": "There are 2 approved shingles vaccines in Canada and the shingles vaccines are not subsidized by the BC Government.\u00a0 For more information about how to purchase and be vaccinated agaisnt shingles, go here.\nImmunization Nurse\n",
+            "Master Question": "I have had Chicken pox several times. I am on long term disability. How do I go about getting the Shingles Vaccination, will the Government cover this for me.\n",
+            "Other - time, condition, symptom etc": "Disability ",
+            "Subject - Person": "",
+            "Subject 1 - Immunization": "Immunization Required",
+            "Subject 2 - Vaccination / General": "Vaccine Cost",
+            "Subject Sex": "",
+            "Vaccine": "",
+            "Who is writing this": "Adult"
+        }
+    ]
+}
