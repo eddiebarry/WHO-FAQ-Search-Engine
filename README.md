@@ -30,5 +30,13 @@ python integration_test.py
 ### For an example of how the search engine works, see
 integration_test.py
 
+### The structure of a query is as follows :
+
++Should [ (Keywords)^Keyword_boost_val      ]
++Should [ (User Query^User_query_boost_val) ]
++Should [ (Synonyms^Synonyms_boost_val)     ]
+
+
+
 ### Special thanks to
 - The [pygaggle](https://github.com/castorini/pygaggle) project especially their MSMarcoRerankin [paper](https://arxiv.org/pdf/2003.06713.pdf)

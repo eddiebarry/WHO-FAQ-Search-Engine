@@ -9,7 +9,7 @@ from org.apache.lucene.queryparser.classic import QueryParser
 from org.apache.lucene.store import SimpleFSDirectory
 from org.apache.lucene.search import IndexSearcher
 
-from synonym_expansion import SynonymExpander
+from synonym_expansion.synonym_expander import SynonymExpander
 
 class QueryGenerator:
     """
@@ -25,9 +25,10 @@ class QueryGenerator:
 
     Methods
     -------
-    __init__(analyzer)
+    __init__(analyzer, use_synonyms)
         The init method takes an analyzer which is used while parsing a
-        user query into a lucene query
+        user query into a lucene query as well as sets wether synonyms
+        must be used
     
     build_query(query_string, boosting_tokens, query_type, default_field)
         Takes a user query, takes a dictionary of boosting tokens and
@@ -40,13 +41,16 @@ class QueryGenerator:
         This method generates a OR query for the given boosting tokens
     """
 
-    def __init__(self, analyzer, use_synonyms=False):
+    def __init__(self, analyzer, \
+        use_synonyms=False, synonyms_boost_val=0.5):
         """ Take a standard analyzer for query generation """
         self.analyzer = analyzer
         self.use_synonyms = use_synonyms
+        self.synonyms_boost_val = None
 
         if self.use_synonyms:
             self.synonym_expander = SynonymExpander()
+            self.synonyms_boost_val = synonyms_boost_val
         
     
     # TODO : Remove Stop words
@@ -79,8 +83,6 @@ class QueryGenerator:
         # TODO : sanitize query string sp that false queries dont break
         # the system. Prevent sql njection type attacks
         if query_type == "OR_QUERY":
-            if self.use_synonyms and self.synonym_expander:
-                query_string = self.synonym_expander.expand(query_string)
             # TODO : add ability to have a per field unique boost value
             query_string = \
                 self.get_or_query_string(query_string, \
@@ -121,9 +123,16 @@ class QueryGenerator:
                     str(x).replace(" ","_") + ":" + str(token) + "^" + str(boost_val)
 
             #TODO : Check Better methods of generating queries
+            if self.use_synonyms and self.synonym_expander:
+                synonyms = self.synonym_expander.return_synonyms(query_string)
+                if len(synonyms) > 0:
+                    query_string = query_string + \
+                        " OR (" + " ".join(synonyms) + ")^" + \
+                        str(self.synonyms_boost_val)
+
             return (query_string + boost_string).replace('/','\/')
             
-# TODO: Write Tests
+
 if __name__ == '__main__':
     lucene.initVM(vmargs=['-Djava.awt.headless=true'])
     
@@ -135,6 +144,20 @@ if __name__ == '__main__':
                         "subject1":["subj"]
                     }
     query_string = "what is my name "
+    
+    search_query = query_gen.build_query(query_string, boosting_tokens,"OR_QUERY")
+
+    print(search_query)
+
+    # Testing the synonyms
+    query_gen = QueryGenerator(StandardAnalyzer(), use_synonyms=True)
+
+    boosting_tokens = {
+                        "title":["cabana","banana"],
+                        "path":["root"],    
+                        "subject1":["subj"]
+                    }
+    query_string = "what is my daughter's name "
     
     search_query = query_gen.build_query(query_string, boosting_tokens,"OR_QUERY")
 

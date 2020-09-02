@@ -11,7 +11,7 @@ from org.apache.lucene.index import \
     FieldInfo, IndexWriter, IndexWriterConfig, IndexOptions
 from org.apache.lucene.store import SimpleFSDirectory
 
-#TODO: Documentation
+
 class IndexFiles:
     """
     A pylucene based class for indexing json objects
