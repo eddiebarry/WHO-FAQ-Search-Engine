@@ -25,6 +25,24 @@ class SynonymExpander:
             use_synlist=False, synlist_path="./synlist"):
         """
         Setup Synonym Expander with spacy pipleline for synonym replacement
+
+        Inputs
+        ------
+        use_wordnet : Boolean
+            Wether to query the wordnet DB for synonyms
+        
+        use_synlist : Boolean
+            Wether to use manually specified synomnym lists
+        
+        synlist_path : String
+            If use_synlist is set to True, a path to the synonymlist file
+            must be specified
+            The format of the synlist is
+
+            A, B, C 
+            ED, BG, CG
+
+            Where each row is a set of synonyms
         """
         # Load an spacy model (supported models are "es" and "en") 
         nlp = spacy.load('en')
@@ -53,7 +71,6 @@ class SynonymExpander:
 
         Inputs
         ------
-
         sent : String
             The sentence which needs to be expanded into a string
 
