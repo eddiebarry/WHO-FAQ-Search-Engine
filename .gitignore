@@ -1,6 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-/query_expansion/query_expander_model_weights/
+query_expansion/query_expander_model_weights/
 *.py[cod]
 *$py.class
 
@@ -123,6 +123,10 @@ venv.bak/
 
 # mkdocs documentation
 /site
+
+# model weights
+.pt
+.pth
 
 # mypy
 .mypy_cache/
