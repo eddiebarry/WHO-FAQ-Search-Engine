@@ -141,3 +141,5 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+variation_generation/variation_generator_model_weights/query_expansion_weights.pt
+variation_generation/variation_generator_model_weights/t5-base.zip

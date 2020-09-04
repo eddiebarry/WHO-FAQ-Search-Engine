@@ -4,7 +4,7 @@ torch.backends.cudnn.deterministic = True
 torch.manual_seed(0)
 
 
-class QueryExpander:
+class VariationGenerator:
     """
     Use this class for generating variations of a question.
     """
@@ -72,7 +72,7 @@ class QueryExpander:
         return generated_variations
 
 if __name__ == '__main__':
-    qry_exp = QueryExpander()
+    variation_gen = VariationGenerator()
     doc_text = "In some areas of BC, parents are asked to submit \
         their children\'s immunization records to the school.  \
         After the immunization record has been given to your \
@@ -86,7 +86,7 @@ if __name__ == '__main__':
         please contact your local public health unit. "
     
     assert(\
-        qry_exp.get_variations(doc_text)\
+        variation_gen.get_variations(doc_text)\
         ==\
         ['why do we need immunization records for school', \
          'why do school nurses get records for immunizations from children',\
