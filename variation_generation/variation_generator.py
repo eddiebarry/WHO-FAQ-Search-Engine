@@ -11,7 +11,7 @@ class VariationGenerator:
 
     # TODO : Think about model weights management + retraining
     def __init__(self, max_length=1024, num_variations=3,\
-        path="./query_expander_model_weights/query_expansion_weights.pt"):
+        path="./variation_generator_model_weights/model.ckpt-1004000"):
         """
         Setup docT5 query generator for generating variations of a query
 
@@ -31,8 +31,7 @@ class VariationGenerator:
         # TODO : Add model weight download
         # self.model = torch.load(path, map_location=self.device)
         self.model = T5ForConditionalGeneration.from_pretrained(\
-            './query_expander_model_weights/model.ckpt-1004000',\
-            from_tf=True, config=config)
+            path, from_tf=True, config=config)
         self.model.to(self.device)
         self.model.eval()
         
@@ -61,7 +60,7 @@ class VariationGenerator:
         else:
             outputs = self.model.generate(
                 input_ids=input_ids,
-                max_length=64,
+                max_length=self.max_length,
                 do_sample=True,
                 top_k=10,
                 num_return_sequences=self.num_variations)

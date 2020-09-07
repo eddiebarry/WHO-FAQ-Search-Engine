@@ -143,3 +143,7 @@ dmypy.json
 cython_debug/
 variation_generation/variation_generator_model_weights/query_expansion_weights.pt
 variation_generation/variation_generator_model_weights/t5-base.zip
+/variation_generation/variation_generator_model_weights/model.ckpt-1004000.data-00001-of-00002
+/variation_generation/variation_generator_model_weights/model.ckpt-1004000.data-00000-of-00002
+/variation_generation/variation_generator_model_weights/model.ckpt-1004000.index
+/variation_generation/variation_generator_model_weights/model.ckpt-1004000.meta

@@ -8,7 +8,7 @@ from org.apache.lucene.analysis.miscellaneous import LimitTokenCountAnalyzer
 from org.apache.lucene.analysis.standard import StandardAnalyzer
 from org.apache.lucene.document import Document, Field, FieldType
 from org.apache.lucene.index import \
-    FieldInfo, IndexWriter, IndexWriterConfig, IndexOptions
+    FieldInfo, IndexWriter, IndexWriterConfig, IndexOptions, DirectoryReader
 from org.apache.lucene.store import SimpleFSDirectory
 
 from variation_generation.variation_generator import VariationGenerator
@@ -85,8 +85,8 @@ class IndexFiles:
         of the jsonArray to the index
     """ 
 
-    def __init__(self, storeDir, analyzer=None, \
-        variation_generator_config = [False, None, [None]])
+    def __init__(self, storeDir, analyzer=None,\
+         variation_generator_config=[False, None, [None]]):
         """
         This method sets the directory in which the index is stored,
         adds the configuration for the lucene index as well as
@@ -144,7 +144,7 @@ class IndexFiles:
         self.writer = None
 
         self.should_expand_queries, \
-        self.query_expander \
+        self.variation_generator, \
         self.fields_to_expand = variation_generator_config
     
     def get_doc_and_freq_fieldtype(self):
@@ -252,6 +252,7 @@ class IndexFiles:
                 variations = self.variation_generator.get_variations(jsonObj[x])
                 for idx, variation in enumerate(variations):
                     field_name = label + "_variation_"+str(idx)
+                    # print("adding", field_name, variation)
                     doc.add(Field(field_name, variation, self.doc_fieldtype))        
             # TODO : Check if key values are strings
             doc.add(Field(x.replace(" ","_"), jsonObj[x], \
@@ -259,6 +260,27 @@ class IndexFiles:
 
         return doc
 
+    def print_all_contents(self):
+        from org.apache.lucene.queryparser.classic import QueryParser
+        from org.apache.lucene.search import IndexSearcher
+
+        searcher = IndexSearcher(DirectoryReader.open(self.store))
+
+        command = "*:*"
+        print("Searching for:", command)
+        query = QueryParser("contents", self.analyzer).parse(command)
+        #query = "MatchAllDocsQuery()"
+        scoreDocs = searcher.search(query, 50).scoreDocs
+        print("%s total matching documents." % len(scoreDocs))
+
+        for scoreDoc in scoreDocs:
+            doc = searcher.doc(scoreDoc.doc)
+            table = dict((field.name(), field.stringValue()) for field in doc.getFields())
+            print("all contents are :")
+            print(table)
+        
+        del searcher
+            
 
 
 if __name__ == '__main__':
@@ -269,8 +291,16 @@ if __name__ == '__main__':
     IndexTest.indexFolder("./test_data")
 
     print(IndexTest.getIndexDir())
+    IndexTest.print_all_contents()
 
-    # TODO: Write tests
-
-    
-    
+    # Use variation generation
+    IndexVariationGenTest = IndexFiles("./IndexFilesVariation.Index",\
+        variation_generator_config=[
+            True,                   #should_expand_queries
+            VariationGenerator(\
+            path="./variation_generation/variation_generator_model_weights/model.ckpt-1004000",
+            max_length=5),   #variation_generator
+            ["keywords","subject1"] #fields_to_expand
+        ])
+    IndexVariationGenTest.indexFolder("./test_data")
+    IndexVariationGenTest.print_all_contents()

@@ -213,3 +213,18 @@ if __name__ == '__main__':
 
     for doc in hits:
         print("contents : " , doc[1], "\nscore : ", doc[0])
+
+    # Search the variation generated on
+    indexDir = "./IndexFilesVariation.Index"
+    SearchEngineTest = SearchEngine(indexDir, rerank=False)
+    
+
+    query_string = "keywords:love keywords_variation_0:love"
+    query = QueryParser("contents", StandardAnalyzer() ).parse(query_string)
+    
+    hits = SearchEngineTest.search(query, \
+        query_string=query_string, query_field="keywords")
+    print("%s total matching documents." % len(hits))
+
+    for doc in hits:
+        print("contents : " , doc[1], "\nscore : ", doc[0])
