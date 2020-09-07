@@ -8,6 +8,7 @@ from org.apache.lucene.analysis.standard import StandardAnalyzer
 lucene.initVM(vmargs=['-Djava.awt.headless=true'])
 
 # Index generator
+# TODO : Add variation generation to integration test
 """ 
 First we need to create an index which is searchable by the lucene
 index. Relevant code in Index.py
