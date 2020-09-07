@@ -86,7 +86,7 @@ class IndexFiles:
     """ 
 
     def __init__(self, storeDir, analyzer=None,\
-         variation_generator_config=[False, None, [None]]):
+        variation_generator_config=[False, None, [None]]):
         """
         This method sets the directory in which the index is stored,
         adds the configuration for the lucene index as well as
@@ -281,7 +281,6 @@ class IndexFiles:
         
         del searcher
             
-
 
 if __name__ == '__main__':
     lucene.initVM(vmargs=['-Djava.awt.headless=true'])

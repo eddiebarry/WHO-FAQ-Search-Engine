@@ -88,6 +88,7 @@ class QueryGenerator:
                 self.get_or_query_string(query_string, \
                 boosting_tokens, boost_val=boost_val)
 
+        field = field.replace(" ","_")
         query = QueryParser(field, self.analyzer).parse(query_string)
         return query
 

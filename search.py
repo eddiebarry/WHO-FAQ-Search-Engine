@@ -138,6 +138,8 @@ class SearchEngine:
         rerank_fiels : String
             The name of the field against which the reranker must be run
         """
+        # Field names do not contain spaces
+        query_field = query_field.replace(" ","_")
 
         # TODO : Use BM25 with Anserini hyper params
         scoreDocs = self.searcher.search(query, top_n)
