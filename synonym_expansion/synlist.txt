@@ -1,0 +1,2 @@
+measles, MMR, Mumps, Rubella
+vaccine, vaccination, immunization, immunize

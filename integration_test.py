@@ -29,12 +29,17 @@ indexDir = IndexTest.getIndexDir()
 Using the user entered data, we generate queries which can be used
 to return results from the lucene index. Relevant code in query_generator.py
 """
-QueryGenTest = QueryGenerator(StandardAnalyzer(), use_synonyms=True)
+QueryGenTest = QueryGenerator(StandardAnalyzer(), \
+        synonym_config=[
+            True, #use_wordnet
+            True, #use_syblist
+            "./synonym_expansion/syn_test.txt" #synlist path
+        ])
 boosting_tokens = {
                     "keywords":["love"],    
                     "subject1":["care"]
                 }
-query_string = "contents"
+query_string = "contents child"
 query = QueryGenTest.build_query(query_string, \
   boosting_tokens, "OR_QUERY", field="contents")
 

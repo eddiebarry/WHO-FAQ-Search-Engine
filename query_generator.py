@@ -25,10 +25,11 @@ class QueryGenerator:
 
     Methods
     -------
-    __init__(analyzer, use_synonyms)
+    __init__(analyzer, synonym_config, synonym_boost_val)
         The init method takes an analyzer which is used while parsing a
         user query into a lucene query as well as sets wether synonyms
-        must be used
+        must be used. If synonym expansion is used, their boost value
+        is also taken
     
     build_query(query_string, boosting_tokens, query_type, default_field)
         Takes a user query, takes a dictionary of boosting tokens and
@@ -41,15 +42,45 @@ class QueryGenerator:
         This method generates a OR query for the given boosting tokens
     """
 
-    def __init__(self, analyzer, \
-        use_synonyms=False, synonyms_boost_val=0.5):
-        """ Take a standard analyzer for query generation """
+    def __init__(self, analyzer, synonyms_boost_val=0.5,\
+        synonym_config=None):
+        """ 
+        Take a standard analyzer for query generation 
+        
+        Inputs
+        ------
+        analyzer : Lucene Analyzer
+            A lucene analyzer to use for parsing query
+        synonym_boost_val : Float
+            The value that generated synonyms must be boosted by
+        synonym_config : Python List
+            [
+                use_wordnet : Boolean, 
+                use_synlist : Boolean,
+                synlist_path : String
+            ]
+            This config file is use to setup what kind of synonym expansion
+            to use
+                use_wordnet
+                    This booelean is used to indicate wether wordnet expansion
+                    must be used or not
+                use_synlist
+                    This boolean is used to indicate wether a custom specified
+                    synlist should be used or not
+                synlist_path 
+                    This string is the path to the synlist to be used if 
+                    use_synlist is set to true
+        """
         self.analyzer = analyzer
-        self.use_synonyms = use_synonyms
         self.synonyms_boost_val = None
+        self.synonym_config = synonym_config
 
-        if self.use_synonyms:
-            self.synonym_expander = SynonymExpander()
+        if synonym_config:
+            use_wordnet, use_synlist, synlist_path = synonym_config
+            self.synonym_expander = SynonymExpander(\
+                use_wordnet=use_wordnet,
+                use_synlist=use_synlist,
+                synlist_path=synlist_path)
             self.synonyms_boost_val = synonyms_boost_val
         
     
@@ -124,7 +155,7 @@ class QueryGenerator:
                     str(x).replace(" ","_") + ":" + str(token) + "^" + str(boost_val)
 
             #TODO : Check Better methods of generating queries
-            if self.use_synonyms and self.synonym_expander:
+            if self.synonym_config:
                 synonyms = self.synonym_expander.return_synonyms(query_string)
                 if len(synonyms) > 0:
                     query_string = query_string + \
@@ -151,7 +182,12 @@ if __name__ == '__main__':
     print(search_query)
 
     # Testing the synonyms
-    query_gen = QueryGenerator(StandardAnalyzer(), use_synonyms=True)
+    query_gen = QueryGenerator(StandardAnalyzer(), \
+        synonym_config=[
+            True, #use_wordnet
+            True, #use_syblist
+            "./synonym_expansion/syn_test.txt" #synlist path
+        ])
 
     boosting_tokens = {
                         "title":["cabana","banana"],

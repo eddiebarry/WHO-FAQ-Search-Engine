@@ -57,8 +57,8 @@ class SynonymExpander:
         self.use_synlist = use_synlist
 
         if self.use_synlist:
-            # TODO : Add synonym expansion from syn_list.txt
-            self.word_to_name_dict , self.name_to_syn_dict = \
+            # TODO : Throw an error if path is not valid
+            self.word_to_name_dict, self.name_to_syn_dict = \
                 self.parse_synlist(synlist_path)
 
 
