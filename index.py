@@ -139,7 +139,8 @@ class IndexFiles:
         self.analyzer = LimitTokenCountAnalyzer(analyzer, 1048576)
         self.config = IndexWriterConfig(analyzer)
         self.config.setOpenMode(IndexWriterConfig.OpenMode.CREATE)
-        self.doc_and_freq_fieldtype = self.get_doc_and_freq_fieldtype()
+        self.doc_and_freq_and_position_fieldtype = \
+            self.get_doc_and_freq_and_position_fieldtype()
         self.doc_fieldtype = self.get_doc_fieldtype()
         self.writer = None
 
@@ -147,7 +148,7 @@ class IndexFiles:
         self.variation_generator, \
         self.fields_to_expand = variation_generator_config
     
-    def get_doc_and_freq_fieldtype(self):
+    def get_doc_and_freq_and_position_fieldtype(self):
         """
         When data is stored in an index, we can choose to store various
         metadata about the document. For example, we can store
@@ -159,7 +160,7 @@ class IndexFiles:
         t1 = FieldType()
         t1.setStored(True)
         t1.setTokenized(True)
-        t1.setIndexOptions(IndexOptions.DOCS_AND_FREQS)
+        t1.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS)
         return t1
     
     def get_doc_fieldtype(self):
@@ -256,7 +257,7 @@ class IndexFiles:
                     doc.add(Field(field_name, variation, self.doc_fieldtype))        
             # TODO : Check if key values are strings
             doc.add(Field(x.replace(" ","_"), jsonObj[x], \
-                self.doc_and_freq_fieldtype))
+                self.doc_and_freq_and_position_fieldtype))
 
         return doc
 
