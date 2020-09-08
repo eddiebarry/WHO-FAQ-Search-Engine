@@ -169,7 +169,8 @@ class SearchEngine:
                 fields = ["Master_Question_variation_1","Master_Question_variation_0"]
                 scoreDocs = []
                 for doc in return_docs:
-                    text = doc[0].get(query_field.replace('*',"")) + "\nVariation :- "
+                    text = doc[0].get(query_field.replace('*',"")) + '-' *80 + \
+                        "\nVariation :- "
                     for field in fields:
                         text += doc[0].get(field) + "\n====\nVariation :- \n"
                     scoreDocs.append([doc[1],text])
