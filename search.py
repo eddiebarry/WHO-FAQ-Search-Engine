@@ -59,7 +59,7 @@ class SearchEngine:
         Returns the top n results according to the scoring function
     """
 
-    def __init__(self, index_dir, rerank=False):
+    def __init__(self, index_dir, rerank=False, debug=False):
         """
         The search class needs to be initialised with a directory which
         points to the lucene index which is being served
@@ -89,6 +89,8 @@ class SearchEngine:
         if rerank:
             self.reranker = T5Ranker()
             print("Reranker set")
+        
+        self.debug = debug
     
     def update(self, new_dir):
         """
@@ -160,6 +162,19 @@ class SearchEngine:
 
             scoreDocs = [ [doc[1], doc[0].get(query_field)] \
                 for doc in return_docs]
+        
+        if self.debug:
+            if query_field.endswith("*"):
+                # mapper from text to doc
+                fields = ["Master_Question_variation_1","Master_Question_variation_0"]
+                scoreDocs = []
+                for doc in return_docs:
+                    text = doc[0].get(query_field.replace('*',"")) + "\nVariation :- "
+                    for field in fields:
+                        text += doc[0].get(field) + "\n====\nVariation :- \n"
+                    scoreDocs.append([doc[1],text])
+
+
 
         if return_json:
             jsonDocs = self.convert_to_json(scoreDocs)

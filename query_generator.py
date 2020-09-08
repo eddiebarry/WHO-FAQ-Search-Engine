@@ -43,7 +43,7 @@ class QueryGenerator:
     """
 
     def __init__(self, analyzer, synonyms_boost_val=0.5,\
-        synonym_config=None):
+        synonym_config=None, debug=False):
         """ 
         Take a standard analyzer for query generation 
         
@@ -74,6 +74,7 @@ class QueryGenerator:
         self.analyzer = analyzer
         self.synonyms_boost_val = None
         self.synonym_config = synonym_config
+        self.debug = debug
 
         if synonym_config:
             use_wordnet, use_synlist, synlist_path = synonym_config
@@ -113,14 +114,23 @@ class QueryGenerator:
 
         # TODO : sanitize query string sp that false queries dont break
         # the system. Prevent sql njection type attacks
+        synonyms = None
         if query_type == "OR_QUERY":
             # TODO : add ability to have a per field unique boost value
-            query_string = \
-                self.get_or_query_string(query_string, \
-                boosting_tokens, boost_val=boost_val)
+            if self.debug:
+                query_string, synonyms = \
+                    self.get_or_query_string(query_string, \
+                    boosting_tokens, boost_val=boost_val)
+            else:
+                query_string = \
+                    self.get_or_query_string(query_string, \
+                    boosting_tokens, boost_val=boost_val)
 
         field = field.replace(" ","_")
         query = QueryParser(field, self.analyzer).parse(query_string)
+
+        if self.debug:
+            return query, synonyms
         return query
 
     def get_or_query_string(self, query_string, boosting_tokens, boost_val):
@@ -154,7 +164,8 @@ class QueryGenerator:
                     if token == "":
                         continue
                     boost_string = boost_string + " OR " + \
-                    str(x).replace(" ","_") + ":" + str(token) + "^" + str(boost_val)
+                    str(x).replace(" ","_") + ":" + str(token) + "^" + \
+                        str(boost_val)
 
             #TODO : Check Better methods of generating queries
             if self.synonym_config:
@@ -163,6 +174,9 @@ class QueryGenerator:
                     query_string = query_string + \
                         " OR (" + " ".join(synonyms) + ")^" + \
                         str(self.synonyms_boost_val)
+            
+                if self.debug:
+                    return (query_string + boost_string).replace('/','\/'), synonyms
 
             return (query_string + boost_string).replace('/','\/')
             
