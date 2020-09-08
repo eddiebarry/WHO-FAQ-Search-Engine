@@ -151,6 +151,8 @@ class QueryGenerator:
             boost_string = ""
             for x in boosting_tokens:
                 for token in boosting_tokens[x]:
+                    if token == "":
+                        continue
                     boost_string = boost_string + " OR " + \
                     str(x).replace(" ","_") + ":" + str(token) + "^" + str(boost_val)
 
