@@ -175,12 +175,15 @@ class SearchEngine:
         if self.debug:
             if query_field.endswith("*"):
                 # mapper from text to doc
-                fields = ["Master_Question_variation_1","Master_Question_variation_0"]
+                fields = [
+                    "Master_Question_variation_1",
+                    "Master_Question_variation_0",
+                    "Master_Answer"]
                 scoreDocs = []
                 for doc in return_docs:
-                    text = doc[0].get(query_field.replace('*',"")) + '-' *80
+                    text = doc[0].get(query_field.replace('*',""))
                     for field in fields:
-                        text += "\n====\nVariation :- \n" + doc[0].get(field)
+                        text += " ||| " + doc[0].get(field)
                     scoreDocs.append([doc[1],text])
 
 
