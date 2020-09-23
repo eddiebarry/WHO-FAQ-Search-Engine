@@ -155,6 +155,13 @@ class SearchEngine:
             reranked = self.reranker.rerank(query_string, text)
             reranked.sort(key=lambda x: x.score, reverse=True)
 
+            return_docs = []
+            for x in reranked:
+                for y in text:
+                    if x.text == y[1]:
+                        return_docs.append(\
+                                (self.return_doc(y[0]),x.score) )
+
             scoreDocs = [[x.score, x.text] for x in reranked]
         else:
             return_docs = [ (self.return_doc(file.doc), file.score) \
