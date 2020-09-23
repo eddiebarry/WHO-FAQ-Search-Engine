@@ -149,7 +149,8 @@ class SearchEngine:
         # TODO : Add support for reranking multiple fields
         if self.reranker and query_string and query_field:
             text = [[document.doc, \
-                self.return_doc(document.doc).get(query_field)] \
+                self.return_doc(document.doc)\
+                    .get(query_field.replace("*",""))] \
                 for document in scoreDocs.scoreDocs]
 
             reranked = self.reranker.rerank(query_string, text)
@@ -161,6 +162,7 @@ class SearchEngine:
                     if x.text == y[1]:
                         return_docs.append(\
                                 (self.return_doc(y[0]),x.score) )
+                        break
 
             scoreDocs = [[x.score, x.text] for x in reranked]
         else:
