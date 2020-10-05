@@ -4,7 +4,8 @@ from dataclasses import dataclass
 import abc
 
 import torch
-torch.set_num_threads(2)
+NUM_THREAD=8
+torch.set_num_threads(NUM_THREAD)
 
 from transformers import AutoTokenizer, T5ForConditionalGeneration
 from transformers import PreTrainedTokenizer
@@ -175,6 +176,7 @@ class Reranker:
 class T5Ranker(Reranker):
     def __init__(self,
                  batch_size: int = 8):
+        torch.set_num_threads(NUM_THREAD)
         model_name = 'castorini/monot5-base-msmarco'
         model = T5ForConditionalGeneration.from_pretrained(model_name)
         model = model.to("cpu").eval()
