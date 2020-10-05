@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import abc
 
 import torch
+torch.set_num_threads(2)
 
 from transformers import AutoTokenizer, T5ForConditionalGeneration
 from transformers import PreTrainedTokenizer
