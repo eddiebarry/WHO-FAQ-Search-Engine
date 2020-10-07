@@ -5,6 +5,8 @@ from query_generator import QueryGenerator
 from index import IndexFiles
 from org.apache.lucene.analysis.standard import StandardAnalyzer
 
+from rerank.config import RE_RANK_ENDPOINT
+
 lucene.initVM(vmargs=['-Djava.awt.headless=true'])
 
 # Index generator
@@ -48,7 +50,10 @@ query = QueryGenTest.build_query(query_string, \
 Using the generated indexes and queries previously, get results for the 
 user query. Relevant code in search_engine.py
 """
-SearchEngineTest = SearchEngine(indexDir, rerank=True)
+SearchEngineTest = SearchEngine(
+    indexDir, 
+    rerank_endpoint=RE_RANK_ENDPOINT
+  )
 
 hits = SearchEngineTest.search(query, \
         query_string=query_string, query_field="contents")

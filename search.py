@@ -8,9 +8,12 @@ from org.apache.lucene.index import DirectoryReader
 from org.apache.lucene.queryparser.classic import QueryParser
 from org.apache.lucene.store import SimpleFSDirectory
 from org.apache.lucene.search import IndexSearcher
-from rerank.T5Reranker import T5Ranker
 
-# TOOD : Migrate to solr when scaling
+from rerank.ApiReranker import ApiReranker
+from rerank.config import RE_RANK_ENDPOINT
+
+
+# TODO : Migrate to solr when scaling
 class SearchEngine:
     """ 
     A pylucene based search class
@@ -59,7 +62,7 @@ class SearchEngine:
         Returns the top n results according to the scoring function
     """
 
-    def __init__(self, index_dir, rerank=False, debug=False):
+    def __init__(self, index_dir, rerank_endpoint=None, debug=False):
         """
         The search class needs to be initialised with a directory which
         points to the lucene index which is being served
@@ -85,10 +88,10 @@ class SearchEngine:
         # TODO: Explore different kinds of analyzers
         self.analyzer = StandardAnalyzer()
 
-        self.reranker = None
-        if rerank:
-            self.reranker = T5Ranker()
-            print("Reranker set")
+        self.rerank_endpoint = rerank_endpoint
+        if self.rerank_endpoint:
+            self.reranker = ApiReranker(endpoint=self.rerank_endpoint)
+            print("Using API Reranker")
         
         self.debug = debug
     
@@ -147,24 +150,21 @@ class SearchEngine:
         scoreDocs = self.searcher.search(query, top_n)
 
         # TODO : Add support for reranking multiple fields
-        if self.reranker and query_string and query_field:
+        if self.rerank_endpoint is not None and query_string and query_field:
             text = [[document.doc, \
                 self.return_doc(document.doc)\
                     .get(query_field.replace("*",""))] \
                 for document in scoreDocs.scoreDocs]
 
-            reranked = self.reranker.rerank(query_string, text)
-            reranked.sort(key=lambda x: x.score, reverse=True)
+            scoreDocs = self.reranker.rerank(query_string, text)
 
             return_docs = []
-            for x in reranked:
+            for x in scoreDocs:
                 for y in text:
-                    if x.text == y[1]:
+                    if x[1] == y[1]:
                         return_docs.append(\
-                                (self.return_doc(y[0]),x.score) )
+                                (self.return_doc(y[0]),x[0]) )
                         break
-
-            scoreDocs = [[x.score, x.text] for x in reranked]
         else:
             return_docs = [ (self.return_doc(file.doc), file.score) \
                 for file in scoreDocs.scoreDocs]
@@ -176,17 +176,21 @@ class SearchEngine:
             if query_field.endswith("*"):
                 # mapper from text to doc
                 fields = [
-                    "Master_Question_variation_1",
-                    "Master_Question_variation_0",
-                    "Master_Answer"]
-                scoreDocs = []
-                for doc in return_docs:
-                    text = doc[0].get(query_field.replace('*',""))
-                    for field in fields:
-                        text += " ||| " + doc[0].get(field)
-                    scoreDocs.append([doc[1],text])
-
-
+                        "Master_Question_variation_1",
+                        "Master_Question_variation_0",
+                        "Master_Answer",
+                    ]
+            else:
+                # only show qa
+                fields = [
+                        "Master_Answer",
+                    ]
+            scoreDocs = []
+            for doc in return_docs:
+                text = doc[0].get(query_field.replace('*',""))
+                for field in fields:
+                    text += " ||| " + doc[0].get(field)
+                scoreDocs.append([doc[1],text])
 
         if return_json:
             jsonDocs = self.convert_to_json(scoreDocs)
@@ -213,12 +217,15 @@ class SearchEngine:
 # TODO : Write Tests
 if __name__ == '__main__':
     lucene.initVM(vmargs=['-Djava.awt.headless=true'])
+
     # Search Engine with reranking
     indexDir = "./IndexFiles.Index"
-    SearchEngineTest = SearchEngine(indexDir, rerank=True)
-    
+    SearchEngineTest = SearchEngine(
+            indexDir, 
+            rerank_endpoint=RE_RANK_ENDPOINT
+        )
 
-    query_string = "contents of"
+    query_string = "contents one"
     query = QueryParser("contents", StandardAnalyzer() ).parse(query_string)
     
     hits = SearchEngineTest.search(query, \
@@ -230,9 +237,8 @@ if __name__ == '__main__':
 
     # No reranking
     indexDir = "./IndexFiles.Index"
-    SearchEngineTest = SearchEngine(indexDir, rerank=False)
+    SearchEngineTest = SearchEngine(indexDir)
     
-
     query_string = "contents of"
     query = QueryParser("contents", StandardAnalyzer() ).parse(query_string)
     
@@ -245,8 +251,7 @@ if __name__ == '__main__':
 
     # Search the variation generated on
     indexDir = "./IndexFilesVariation.Index"
-    SearchEngineTest = SearchEngine(indexDir, rerank=False)
-    
+    SearchEngineTest = SearchEngine(indexDir)
 
     query_string = "keywords:love keywords_variation_0:love"
     query = QueryParser("contents", StandardAnalyzer() ).parse(query_string)
