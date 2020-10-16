@@ -144,6 +144,7 @@ class IndexFiles:
             self.get_doc_and_freq_and_position_fieldtype()
         self.doc_fieldtype = self.get_doc_fieldtype()
         self.writer = None
+        self.writer = IndexWriter(self.store, self.config)
 
         self.should_expand_queries, \
         self.variation_generator, \
@@ -152,12 +153,14 @@ class IndexFiles:
     def update_store_dir(self, newStoreDir):
         vm_env = lucene.getVMEnv()
         vm_env.attachCurrentThread()
+        self.writer.close()
         self.storeDir = newStoreDir
         if not os.path.exists(self.storeDir):
             os.mkdir(self.storeDir)
         self.store = SimpleFSDirectory(Paths.get(self.storeDir))
         self.config = IndexWriterConfig(self.analyzer)
         self.config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND)
+        self.writer = IndexWriter(self.store, self.config)
     
     def get_doc_and_freq_and_position_fieldtype(self):
         """
@@ -198,11 +201,7 @@ class IndexFiles:
         """
         Adds all the json files present in indexDir to the index
         """
-        vm_env = lucene.getVMEnv()
-        vm_env.attachCurrentThread()
         print( 'Writing directory to index')
-        self.writer = IndexWriter(self.store, self.config)
-        # TODO : Check if indexDir is a real index
         for filename in sorted(os.listdir(indexDir)):
             if not filename.endswith('.json'):
                 continue
@@ -211,9 +210,6 @@ class IndexFiles:
             self.indexJsonPath(os.path.join(indexDir,filename))
             
         self.writer.commit()
-        self.writer.close()
-        self.config = IndexWriterConfig(self.analyzer)
-        self.config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND)
         print( 'done')
         
     # TODO : Make changes when we want to expand queries
@@ -242,10 +238,7 @@ class IndexFiles:
         Takes all objects inside the json array and adds them to the
         index
         """
-        vm_env = lucene.getVMEnv()
-        vm_env.attachCurrentThread()
-        print( 'writing json array to index')
-        self.writer = IndexWriter(self.store, self.config)
+        print( 'writing json array to index')        
         for jsonObj in jsonArray:
             try:    
                 doc = self.getDocumentToIndex(jsonObj)
@@ -259,9 +252,6 @@ class IndexFiles:
                 print( "Failed in indexDocs:", e)
         
         self.writer.commit()
-        self.writer.close()
-        self.config = IndexWriterConfig(self.analyzer)
-        self.config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND)
         print( 'done')
 
     # TODO : write a single json file to index and commit
@@ -273,6 +263,8 @@ class IndexFiles:
         """
         doc = Document()
         for x in jsonObj.keys():
+            if jsonObj[x]=="" or jsonObj[x] =="-":
+                continue
             if x.replace(" ","_") in self.fields_to_expand:
                 label = x.replace(" ","_")
                 variations = self.variation_generator.get_variations(jsonObj[x])
@@ -296,8 +288,7 @@ class IndexFiles:
         print("Searching for:", command)
         query = QueryParser("contents", self.analyzer).parse(command)
         #query = "MatchAllDocsQuery()"
-        scoreDocs = searcher.search(query, 50).scoreDocs
-        print("%s total matching documents." % len(scoreDocs))
+        scoreDocs = searcher.search(query,50).scoreDocs
 
         for scoreDoc in scoreDocs:
             doc = searcher.doc(scoreDoc.doc)
@@ -305,8 +296,8 @@ class IndexFiles:
             print("all contents are :")
             print(table)
         
+        print("%s total matching documents." % len(scoreDocs))
         del searcher
-            
 
 if __name__ == '__main__':
     lucene.initVM(vmargs=['-Djava.awt.headless=true'])
