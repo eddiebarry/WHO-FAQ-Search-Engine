@@ -208,30 +208,11 @@ class IndexFiles:
             
             print("adding", filename)
             self.indexJsonPath(os.path.join(indexDir,filename))
-            
+
         self.writer.commit()
-        print( 'done')
+        print( 'done - index now contains : ', self.writer.getDocStats().numDocs, " docs")    
+        self.writer.close()
         
-    # TODO : Make changes when we want to expand queries
-    def indexJsonPath(self, jsonpath):
-        """
-        Adds the json file which jsonpath points to, to the index
-        Adds all possible key Value pairs present
-        """
-        if os.path.isfile(jsonpath) and jsonpath.endswith(".json"):
-            try:
-                f = open(jsonpath,)
-                jsonObj = json.load(f)
-
-                doc = self.getDocumentToIndex(jsonObj)
-                if 'id' not in jsonObj.keys():
-                    jsonObj['id']=hashlib.sha512(jsonObj['question'].encode())\
-                        .hexdigest()
-                term = Term("id",jsonObj['id'])
-                self.writer.updateDocument(term,doc)
-
-            except Exception as e:
-                print( "Failed in indexDocs:", e)
     
     def indexJsonArray(self, jsonArray):
         """
@@ -252,8 +233,30 @@ class IndexFiles:
                 print( "Failed in indexDocs:", e)
         
         self.writer.commit()
-        print( 'done')
+        print( 'done - index now contains : ', self.writer.getDocStats().numDocs, " docs")
+        self.writer.close()
 
+    # TODO : Make changes when we want to expand queries
+    def indexJsonPath(self, jsonpath):
+        """
+        Adds the json file which jsonpath points to, to the index
+        Adds all possible key Value pairs present
+        """
+        if os.path.isfile(jsonpath) and jsonpath.endswith(".json"):
+            try:
+                f = open(jsonpath,)
+                jsonObj = json.load(f)
+
+                doc = self.getDocumentToIndex(jsonObj)
+                if 'id' not in jsonObj.keys():
+                    jsonObj['id']=hashlib.sha512(jsonObj['question'].encode())\
+                        .hexdigest()
+                term = Term("id",jsonObj['id'])
+                self.writer.updateDocument(term,doc)
+
+            except Exception as e:
+                print( "Failed in indexDocs:", e)
+                
     # TODO : write a single json file to index and commit
     def getDocumentToIndex(self,jsonObj):
         """
