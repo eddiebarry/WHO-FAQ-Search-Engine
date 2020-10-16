@@ -8,7 +8,8 @@ from org.apache.lucene.analysis.miscellaneous import LimitTokenCountAnalyzer
 from org.apache.lucene.analysis.standard import StandardAnalyzer
 from org.apache.lucene.document import Document, Field, FieldType
 from org.apache.lucene.index import \
-    FieldInfo, IndexWriter, IndexWriterConfig, IndexOptions, DirectoryReader
+    FieldInfo, IndexWriter, IndexWriterConfig, IndexOptions, DirectoryReader,\
+    Term
 from org.apache.lucene.store import SimpleFSDirectory
 
 from variation_generation.variation_generator import VariationGenerator
@@ -135,9 +136,9 @@ class IndexFiles:
             analyzer = StandardAnalyzer()
 
         self.storeDir = storeDir
-        self.store = SimpleFSDirectory(Paths.get(storeDir))
+        self.store = SimpleFSDirectory(Paths.get(self.storeDir))
         self.analyzer = LimitTokenCountAnalyzer(analyzer, 1048576)
-        self.config = IndexWriterConfig(analyzer)
+        self.config = IndexWriterConfig(self.analyzer)
         self.config.setOpenMode(IndexWriterConfig.OpenMode.CREATE)
         self.doc_and_freq_and_position_fieldtype = \
             self.get_doc_and_freq_and_position_fieldtype()
@@ -147,6 +148,16 @@ class IndexFiles:
         self.should_expand_queries, \
         self.variation_generator, \
         self.fields_to_expand = variation_generator_config
+    
+    def update_store_dir(self, newStoreDir):
+        vm_env = lucene.getVMEnv()
+        vm_env.attachCurrentThread()
+        self.storeDir = newStoreDir
+        if not os.path.exists(self.storeDir):
+            os.mkdir(self.storeDir)
+        self.store = SimpleFSDirectory(Paths.get(self.storeDir))
+        self.config = IndexWriterConfig(self.analyzer)
+        self.config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND)
     
     def get_doc_and_freq_and_position_fieldtype(self):
         """
@@ -187,6 +198,8 @@ class IndexFiles:
         """
         Adds all the json files present in indexDir to the index
         """
+        vm_env = lucene.getVMEnv()
+        vm_env.attachCurrentThread()
         print( 'Writing directory to index')
         self.writer = IndexWriter(self.store, self.config)
         # TODO : Check if indexDir is a real index
@@ -199,6 +212,8 @@ class IndexFiles:
             
         self.writer.commit()
         self.writer.close()
+        self.config = IndexWriterConfig(self.analyzer)
+        self.config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND)
         print( 'done')
         
     # TODO : Make changes when we want to expand queries
@@ -213,29 +228,34 @@ class IndexFiles:
                 jsonObj = json.load(f)
 
                 doc = self.getDocumentToIndex(jsonObj)
-                self.writer.addDocument(doc)
+                term = Term("id",jsonObj['id'])
+                self.writer.updateDocument(term,doc)
 
             except Exception as e:
                 print( "Failed in indexDocs:", e)
     
-    # TODO : Store the created Json Objects
-    def indexJsonArray(self, jsonArray, list_name = "QA_Pairs"):
+    def indexJsonArray(self, jsonArray):
         """
         Takes all objects inside the json array and adds them to the
         index
         """
+        vm_env = lucene.getVMEnv()
+        vm_env.attachCurrentThread()
         print( 'writing json array to index')
         self.writer = IndexWriter(self.store, self.config)
-        for jsonObj in jsonArray[list_name]:
+        for jsonObj in jsonArray:
             try:    
                 doc = self.getDocumentToIndex(jsonObj)
-                self.writer.addDocument(doc)
+                term = Term("id",jsonObj['id'])
+                self.writer.updateDocument(term,doc)
 
             except Exception as e:
                 print( "Failed in indexDocs:", e)
         
         self.writer.commit()
         self.writer.close()
+        self.config = IndexWriterConfig(self.analyzer)
+        self.config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND)
         print( 'done')
 
     # TODO : write a single json file to index and commit
@@ -246,7 +266,6 @@ class IndexFiles:
         This includes the generation of variations of fields that we must store
         """
         doc = Document()
-
         for x in jsonObj.keys():
             if x.replace(" ","_") in self.fields_to_expand:
                 label = x.replace(" ","_")

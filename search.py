@@ -118,8 +118,7 @@ class SearchEngine:
         self.directory = \
             SimpleFSDirectory(Paths.get(new_dir))
         self.searcher = \
-            IndexSearcher(DirectoryReader.open(directory))
-        self.analyzer = StandardAnalyzer()
+            IndexSearcher(DirectoryReader.open(self.directory))
     
     def search(self, query, top_n=50, return_json=False, \
         query_string=None, query_field=None):
@@ -176,9 +175,9 @@ class SearchEngine:
             if query_field.endswith("*"):
                 # mapper from text to doc
                 fields = [
-                        "Master_Question_variation_1",
-                        "Master_Question_variation_0",
-                        "Master_Answer",
+                        "question_variation_1",
+                        "question_variation_0",
+                        "answer",
                     ]
             else:
                 # only show qa

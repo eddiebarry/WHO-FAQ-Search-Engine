@@ -115,6 +115,9 @@ class QueryGenerator:
         # TODO : sanitize query string sp that false queries dont break
         # the system. Prevent sql njection type attacks
         synonyms = None
+        query_string = query_string.replace("?","").replace("(","")\
+                .replace(")","").replace("-","").replace("\"","").replace("'","")
+        
         if query_type == "OR_QUERY":
             # TODO : add ability to have a per field unique boost value
             if self.debug:
