@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, os, lucene, threading, time, json
+import sys, os, lucene, threading, time, json, hashlib
 from datetime import datetime
 
 from java.nio.file import Paths
@@ -228,6 +228,9 @@ class IndexFiles:
                 jsonObj = json.load(f)
 
                 doc = self.getDocumentToIndex(jsonObj)
+                if 'id' not in jsonObj.keys():
+                    jsonObj['id']=hashlib.sha512(jsonObj['question'].encode())\
+                        .hexdigest()
                 term = Term("id",jsonObj['id'])
                 self.writer.updateDocument(term,doc)
 
@@ -246,6 +249,9 @@ class IndexFiles:
         for jsonObj in jsonArray:
             try:    
                 doc = self.getDocumentToIndex(jsonObj)
+                if 'id' not in jsonObj.keys():
+                    jsonObj['id']=hashlib.sha512(jsonObj['question'].encode())\
+                        .hexdigest()
                 term = Term("id",jsonObj['id'])
                 self.writer.updateDocument(term,doc)
 
