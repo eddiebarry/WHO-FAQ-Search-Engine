@@ -138,14 +138,9 @@ class IndexFiles:
         self.storeDir = storeDir
         self.store = SimpleFSDirectory(Paths.get(self.storeDir))
         self.analyzer = LimitTokenCountAnalyzer(analyzer, 1048576)
-        # self.config = IndexWriterConfig(self.analyzer)
-        # self.config.setOpenMode(IndexWriterConfig.OpenMode.CREATE)
         self.doc_and_freq_and_position_fieldtype = \
             self.get_doc_and_freq_and_position_fieldtype()
         self.doc_fieldtype = self.get_doc_fieldtype()
-        # self.writer = None
-        # self.writer = IndexWriter(self.store, self.config)
-
         self.should_expand_queries, \
         self.variation_generator, \
         self.fields_to_expand = variation_generator_config
@@ -153,14 +148,10 @@ class IndexFiles:
     def update_store_dir(self, newStoreDir):
         vm_env = lucene.getVMEnv()
         vm_env.attachCurrentThread()
-        # self.writer.close()
         self.storeDir = newStoreDir
         if not os.path.exists(self.storeDir):
             os.mkdir(self.storeDir)
         self.store = SimpleFSDirectory(Paths.get(self.storeDir))
-        # self.config = IndexWriterConfig(self.analyzer)
-        # self.config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND)
-        # self.writer = IndexWriter(self.store, self.config)
     
     def get_doc_and_freq_and_position_fieldtype(self):
         """
@@ -212,7 +203,7 @@ class IndexFiles:
                 continue
             
             print("adding", filename)
-            self.indexJsonPath(os.path.join(indexDir,filename,writer))
+            self.indexJsonPath(os.path.join(indexDir,filename),writer)
 
         writer.commit()
         print( 'done - index now contains : ', writer.getDocStats().numDocs, " docs")    
