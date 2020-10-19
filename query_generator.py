@@ -130,6 +130,8 @@ class QueryGenerator:
                     boosting_tokens, boost_val=boost_val)
 
         field = field.replace(" ","_")
+        vm_env = lucene.getVMEnv()
+        vm_env.attachCurrentThread()
         query = QueryParser(field, self.analyzer).parse(query_string)
 
         if self.debug:

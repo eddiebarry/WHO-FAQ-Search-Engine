@@ -138,13 +138,13 @@ class IndexFiles:
         self.storeDir = storeDir
         self.store = SimpleFSDirectory(Paths.get(self.storeDir))
         self.analyzer = LimitTokenCountAnalyzer(analyzer, 1048576)
-        self.config = IndexWriterConfig(self.analyzer)
-        self.config.setOpenMode(IndexWriterConfig.OpenMode.CREATE)
+        # self.config = IndexWriterConfig(self.analyzer)
+        # self.config.setOpenMode(IndexWriterConfig.OpenMode.CREATE)
         self.doc_and_freq_and_position_fieldtype = \
             self.get_doc_and_freq_and_position_fieldtype()
         self.doc_fieldtype = self.get_doc_fieldtype()
-        self.writer = None
-        self.writer = IndexWriter(self.store, self.config)
+        # self.writer = None
+        # self.writer = IndexWriter(self.store, self.config)
 
         self.should_expand_queries, \
         self.variation_generator, \
@@ -153,14 +153,14 @@ class IndexFiles:
     def update_store_dir(self, newStoreDir):
         vm_env = lucene.getVMEnv()
         vm_env.attachCurrentThread()
-        self.writer.close()
+        # self.writer.close()
         self.storeDir = newStoreDir
         if not os.path.exists(self.storeDir):
             os.mkdir(self.storeDir)
         self.store = SimpleFSDirectory(Paths.get(self.storeDir))
-        self.config = IndexWriterConfig(self.analyzer)
-        self.config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND)
-        self.writer = IndexWriter(self.store, self.config)
+        # self.config = IndexWriterConfig(self.analyzer)
+        # self.config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND)
+        # self.writer = IndexWriter(self.store, self.config)
     
     def get_doc_and_freq_and_position_fieldtype(self):
         """
@@ -201,17 +201,22 @@ class IndexFiles:
         """
         Adds all the json files present in indexDir to the index
         """
+        vm_env = lucene.getVMEnv()
+        vm_env.attachCurrentThread()
+        config = IndexWriterConfig(self.analyzer)
+        config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND)
+        writer = IndexWriter(self.store, config)
         print( 'Writing directory to index')
         for filename in sorted(os.listdir(indexDir)):
             if not filename.endswith('.json'):
                 continue
             
             print("adding", filename)
-            self.indexJsonPath(os.path.join(indexDir,filename))
+            self.indexJsonPath(os.path.join(indexDir,filename,writer))
 
-        self.writer.commit()
-        print( 'done - index now contains : ', self.writer.getDocStats().numDocs, " docs")    
-        self.writer.close()
+        writer.commit()
+        print( 'done - index now contains : ', writer.getDocStats().numDocs, " docs")    
+        writer.close()
         
     
     def indexJsonArray(self, jsonArray):
@@ -219,6 +224,11 @@ class IndexFiles:
         Takes all objects inside the json array and adds them to the
         index
         """
+        vm_env = lucene.getVMEnv()
+        vm_env.attachCurrentThread()
+        config = IndexWriterConfig(self.analyzer)
+        config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND)
+        writer = IndexWriter(self.store, config)
         print( 'writing json array to index')        
         for jsonObj in jsonArray:
             try:    
@@ -227,17 +237,17 @@ class IndexFiles:
                     jsonObj['id']=hashlib.sha512(jsonObj['question'].encode())\
                         .hexdigest()
                 term = Term("id",jsonObj['id'])
-                self.writer.updateDocument(term,doc)
+                writer.updateDocument(term,doc)
 
             except Exception as e:
                 print( "Failed in indexDocs:", e)
         
-        self.writer.commit()
-        print( 'done - index now contains : ', self.writer.getDocStats().numDocs, " docs")
-        self.writer.close()
+        writer.commit()
+        print( 'done - index now contains : ', writer.getDocStats().numDocs, " docs")
+        writer.close()
 
     # TODO : Make changes when we want to expand queries
-    def indexJsonPath(self, jsonpath):
+    def indexJsonPath(self, jsonpath, writer):
         """
         Adds the json file which jsonpath points to, to the index
         Adds all possible key Value pairs present
@@ -252,7 +262,7 @@ class IndexFiles:
                     jsonObj['id']=hashlib.sha512(jsonObj['question'].encode())\
                         .hexdigest()
                 term = Term("id",jsonObj['id'])
-                self.writer.updateDocument(term,doc)
+                writer.updateDocument(term,doc)
 
             except Exception as e:
                 print( "Failed in indexDocs:", e)
@@ -268,9 +278,23 @@ class IndexFiles:
         for x in jsonObj.keys():
             if jsonObj[x]=="" or jsonObj[x] =="-":
                 continue
+            if "variation" in x:
+                continue
+
             if x.replace(" ","_") in self.fields_to_expand:
                 label = x.replace(" ","_")
-                variations = self.variation_generator.get_variations(jsonObj[x])
+                cached = True
+                field_names = []
+                for idx in range(self.variation_generator.num_variations):
+                    field_name = label + "_variation_"+str(idx)
+                    field_names.append(field_name)
+                    cached = cached and field_name in jsonObj.keys()
+
+                if cached:
+                    variations = [jsonObj[key] for key in field_names]
+                else:
+                    variations = self.variation_generator.get_variations(jsonObj[x])
+
                 for idx, variation in enumerate(variations):
                     field_name = label + "_variation_"+str(idx)
                     # print("adding", field_name, variation)
