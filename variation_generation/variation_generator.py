@@ -10,7 +10,7 @@ class VariationGenerator:
     """
 
     # TODO : Think about model weights management + retraining
-    def __init__(self, max_length=1024, num_variations=3,\
+    def __init__(self, max_length=20, num_variations=3,\
         path="./variation_generator_model_weights/model.ckpt-1004000"):
         """
         Setup docT5 query generator for generating variations of a query

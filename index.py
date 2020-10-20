@@ -252,7 +252,7 @@ class IndexFiles:
                 if 'id' not in jsonObj.keys():
                     jsonObj['id']=hashlib.sha512(jsonObj['question'].encode())\
                         .hexdigest()
-                term = Term("id",jsonObj['id'])
+                term = Term("id",str(jsonObj['id']))
                 writer.updateDocument(term,doc)
 
             except Exception as e:
