@@ -223,11 +223,11 @@ class IndexFiles:
         print( 'writing json array to index')        
         for jsonObj in jsonArray:
             try:    
-                doc = self.getDocumentToIndex(jsonObj)
                 if 'id' not in jsonObj.keys():
                     jsonObj['id']=hashlib.sha512(jsonObj['question'].encode())\
                         .hexdigest()
-                term = Term("id",jsonObj['id'])
+                doc = self.getDocumentToIndex(jsonObj)
+                term = Term("id",str(jsonObj['id']))
                 writer.updateDocument(term,doc)
 
             except Exception as e:
@@ -247,11 +247,10 @@ class IndexFiles:
             try:
                 f = open(jsonpath,)
                 jsonObj = json.load(f)
-
-                doc = self.getDocumentToIndex(jsonObj)
                 if 'id' not in jsonObj.keys():
                     jsonObj['id']=hashlib.sha512(jsonObj['question'].encode())\
                         .hexdigest()
+                doc = self.getDocumentToIndex(jsonObj)
                 term = Term("id",str(jsonObj['id']))
                 writer.updateDocument(term,doc)
 
