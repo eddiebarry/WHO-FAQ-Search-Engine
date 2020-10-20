@@ -206,7 +206,7 @@ class IndexFiles:
             self.indexJsonPath(os.path.join(indexDir,filename),writer)
 
         writer.commit()
-        print( 'done - index now contains : ', writer.getDocStats().numDocs, " docs")    
+        print( 'done - index ',self.storeDir ,' now contains : ', writer.getDocStats().numDocs, " docs")
         writer.close()
         
     
@@ -234,7 +234,7 @@ class IndexFiles:
                 print( "Failed in indexDocs:", e)
         
         writer.commit()
-        print( 'done - index now contains : ', writer.getDocStats().numDocs, " docs")
+        print( 'done - index ',self.storeDir ,' now contains : ', writer.getDocStats().numDocs, " docs")
         writer.close()
 
     # TODO : Make changes when we want to expand queries
