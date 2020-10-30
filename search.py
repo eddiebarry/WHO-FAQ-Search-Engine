@@ -204,14 +204,6 @@ class SearchEngine:
         """
         return self.searcher.doc(doc_id)
 
-    # TODO: Specify the data format and implement the function
-    def convert_to_json(self, scoreDocs):
-        """
-        A function for converting the internal search results
-        form the javadoc format to a json object
-        """
-        pass
-
 
 # TODO : Write Tests
 if __name__ == '__main__':
