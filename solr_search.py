@@ -1,0 +1,468 @@
+#!/usr/bin/env python
+
+import sys, os, json, requests#, lucene
+import pysolr
+import pdb
+
+# from java.nio.file import Paths
+# from org.apache.lucene.analysis.standard import StandardAnalyzer
+# from org.apache.lucene.index import DirectoryReader
+# from org.apache.lucene.queryparser.classic import QueryParser
+# from org.apache.lucene.store import SimpleFSDirectory
+# from org.apache.lucene.search import IndexSearcher
+
+from rerank.ApiReranker import ApiReranker
+from rerank.config import RE_RANK_ENDPOINT
+from variation_generation.variation_generator import VariationGenerator
+from synonym_expansion.synonym_expander import SynonymExpander
+
+
+# TODO : Migrate to solr when scaling
+class SolrSearchEngine:
+    """ 
+    A solr based search class
+    
+    
+    To query the index, a query needs to be built by the 
+    QueryGenerator class
+
+    The search results are served via a json or JavaDocs format
+
+
+    Attributes
+    ----------
+    solr_server_link : String
+        Url pointing to a solr server
+
+    rerank_endpoint : String
+        Url point to ML reranking server
+
+
+    Methods
+    -------
+    __init__(solr_url, rerank_endpoint):
+        Sets up the solr url endpoint as well as the ranking endpoint
+    
+    index(project_id, version_id, question_list):
+        Takes the question list, generates variations and adds them to the index
+
+    get_json_to_add(question_pair):
+
+    
+    search(query, top_n=50):
+        The main function used for searching an index. Intentionally kept
+        to the bare minimum for latency reasons
+
+        Returns the top n results according to the scoring function
+    """
+
+    def __init__(self,\
+        solr_url="http://solr-test-zookeeper-cluster"+
+            ".apps.who.lxp.academy.who.int",\
+        rerank_endpoint=None,\
+        debug=False,\
+        variation_generator_config=[False, None, [None]],\
+        synonyms_boost_val=0.5,\
+        synonym_config=[
+            True, #use_wordnet
+            True, #use_syblist
+            "./synonym_expansion/syn_test.txt" #synlist path
+        ]):
+        """
+        The search class needs to be initialised with a directory which
+        points to the lucene index which is being served
+
+        Once it is pointed to the directory, This function initialises 
+        an IndexSearcher for the given index
+
+        Inputs
+        ------
+        index_dir : String
+            A string which is the path to a lucene based index
+        rerank : Bool
+            A Flag for wether a simple ML reranker must be used as part
+            of the pipeline
+        """
+        self.solr_server_link = solr_url
+        self.rerank_endpoint = rerank_endpoint
+        
+        self.variation_generator, \
+        self.fields_to_expand = variation_generator_config
+        
+        self.synonyms_boost_val = None
+        self.synonym_config = synonym_config
+
+        if self.rerank_endpoint:
+            self.reranker = ApiReranker(endpoint=self.rerank_endpoint)
+            print("Using API Reranker")
+
+        if synonym_config:
+            use_wordnet, use_synlist, synlist_path = synonym_config
+            self.synonym_expander = SynonymExpander(\
+                use_wordnet=use_wordnet,
+                use_synlist=use_synlist,
+                synlist_path=synlist_path)
+            self.synonyms_boost_val = synonyms_boost_val
+        
+        self.debug = debug
+    
+    def index(self, project_id, version_id, question_list):
+        """
+        This function adds QA pairs to the search index after generating 
+        variations
+
+        Inputs
+        ------
+        project_id : String
+            A string which states to the project being used
+        
+        version_id : String
+            A string which states to the version being used
+        """
+        proj_exists = self.ensure_collection_exists(project_id,version_id)
+        if proj_exists:
+            index_url = self.solr_server_link + "/solr/" + proj_exists
+            client = pysolr.Solr(index_url, always_commit=True)
+
+            for question in question_list:
+                if 'id' not in question.keys():
+                    question['id']=hashlib.sha512(question['question'].encode())\
+                        .hexdigest()
+                question_with_variation = self.preprocess_question(question)
+                client.add(question_with_variation)
+
+    def preprocess_question(self, question):
+        processed_question = {}
+        for x in question.keys():
+            if question[x]=="" or question[x] =="-":
+                continue
+            if "variation" in x:
+                continue
+
+            if x.replace(" ","_") in self.fields_to_expand:
+                label = x.replace(" ","_")
+                cached = True
+                field_names = []
+
+                if self.variation_generator:
+                    for idx in range(self.variation_generator.num_variations):
+                        field_name = label + "_variation_"+str(idx)
+                        field_names.append(field_name)
+                        cached = cached and field_name in question.keys()
+
+                    if cached:
+                        variations = [question[key] for key in field_names]
+                    else:
+                        variations = self.variation_generator.\
+                            get_variations(question[x])
+
+                    for idx, variation in enumerate(variations):
+                        field_name = label + "_variation_"+str(idx)
+                        processed_question[field_name] = variation
+            processed_question[x]=question[x]
+
+        return processed_question
+
+    def ensure_collection_exists(self, project_id, version_id):
+        collection_url = self.solr_server_link + "/solr/admin/collections"
+        # Check collection names
+        collection_json = requests.get(\
+            collection_url,{"action":"LIST","wt":"json"}).json()
+        
+        if collection_json['responseHeader']['status'] != 0:
+            return False
+
+        all_collections = collection_json['collections']
+
+        new_name = "qa_"+str(project_id)+"_"+str(version_id)
+        if new_name not in all_collections:
+            # Create a collection if collection doesnt exist
+            x = requests.get(collection_url,\
+                {"action":"CREATE","name":new_name,"numShards":"2"})
+        return new_name
+    
+    def indexFolder(self, indexDir):
+        """
+        Adds all the json files present in indexDir to the index
+        """
+        print( 'Writing directory to index')
+        for filename in sorted(os.listdir(indexDir))[:10]:
+            if not filename.endswith('.json'):
+                continue            
+            print("adding", filename)
+            
+            f = open(os.path.join(indexDir,filename),)
+            question = json.load(f)
+
+            self.index("test","variation",[question])
+
+    def build_query(self, query_string, boosting_tokens, query_type, \
+        field="contents", boost_val=1.05):
+        """
+        First, the user query is matched againt the field specifiec in 
+        "field", then the boosting tokens are matched against the keys 
+        of the dictionary with a uniform boosting value "boost_val"
+
+        The format of the boosting tokens is
+        boosting_tokens = {
+            "keywords":["love"],    
+            "subject1":["care"]
+        }
+
+        Inputs
+        ------
+        query_string : String
+            The string input by the user
+        boosting_tokens : Dictionary
+            The dictionary of tokens which need to be boosted according
+            to the format specified above. The key of the dictionary is
+            the field while the value is the token
+        query_type : String
+            The query type is the string which specifies what type of
+            lucene query we should use
+        """
+
+        # TODO : sanitize query string sp that false queries dont break
+        # the system. Prevent sql njection type attacks
+        synonyms = None
+        query_string = query_string.replace("?","").replace("(","")\
+                .replace(")","").replace("-","").replace("\"","").replace("'","").strip()
+        
+        # Ask against field
+        new_field = field+":"
+        qs = ""
+        for x in query_string.split(" "):
+            qs+= new_field + "\""+ x + "\" "
+
+        query_string = qs
+        if query_type == "OR_QUERY":
+            # TODO : add ability to have a per field unique boost value
+            if self.debug:
+                query_string, synonyms = \
+                    self.get_or_query_string(query_string, \
+                    boosting_tokens, boost_val=boost_val, field=field)
+            else:
+                query_string = \
+                    self.get_or_query_string(query_string, \
+                    boosting_tokens, boost_val=boost_val, field=field)
+
+        if self.debug:
+            return query_string, synonyms
+        return query_string
+
+    def get_or_query_string(self, query_string, boosting_tokens, boost_val, field):
+        """
+        Converts the user query string and boosting tokens into a long 
+        OR query
+        
+        The format of the boosting tokens is
+        boosting_tokens = {
+            "keywords":["love"],    
+            "subject1":["care"]
+        }
+
+        Inputs
+        ------
+        query_string : String
+            The string input by the user
+        boosting_tokens : Dictionary
+            The dictionary of tokens which need to be boosted according
+            to the format specified above. The key of the dictionary is
+            the field while the value is the token
+        boost_val : Float
+            The amount of boosting that must be added per boosting token
+        """
+
+        if boost_val:
+            # TODO : Boost a token according to a per field value
+            boost_string = ""
+            for x in boosting_tokens:
+                for token in boosting_tokens[x]:
+                    if token == "":
+                        continue
+                    boost_string = boost_string + " OR " + \
+                    str(x).replace(" ","_") + ":\"" + str(token) + "\"^" + \
+                        str(boost_val)
+
+            #TODO : Check Better methods of generating queries
+            if self.synonym_config:
+                synonyms = self.synonym_expander.return_synonyms(query_string)
+                if len(synonyms) > 0:
+                    qs = ""
+                    new_field = field+":"
+                    for x in synonyms:
+                        qs+= new_field + x + " "
+
+                    query_string = query_string + \
+                        " OR (" + qs + ")^" + \
+                        str(self.synonyms_boost_val)
+            
+                if self.debug:
+                    return (query_string + boost_string).replace('/','\/'), synonyms
+
+            return (query_string + boost_string).replace('/','\/')
+
+    def search(self, query, project_id, version_id, top_n=50, return_json=False, \
+        query_string=None, query_field=None):
+        """
+        This function takes a lucene query which can be created from
+        the lucene query parser class and performs a search on the index
+        It then returns the top n results according to the ranking score
+
+        Inputs
+        ------
+        query : Lucene Query
+            A query create by the QueryGenerator class present in 
+            query_generator.py
+        top_n : Int
+            The number of top results we want our search to return
+        return_json : Bool
+            If true, the search results are jsonified and returned
+            else the search results are return in the Lucene Document format
+        query_string : String
+            The string entered by the user
+        rerank_fiels : String
+            The name of the field against which the reranker must be run
+        """
+        # Field names do not contain spaces
+        query_field = query_field.replace(" ","_")
+
+        proj_exists = self.ensure_collection_exists(project_id,version_id)
+        if proj_exists:
+            index_url = self.solr_server_link + "/solr/" + proj_exists
+
+        client = pysolr.Solr(index_url, always_commit=True)
+        
+        if not proj_exists:
+            return 400
+
+        search_results = client.search(query)
+
+        pdb.set_trace()
+
+        # TODO : Use BM25 with Anserini hyper params
+        # scoreDocs = self.searcher.search(query, top_n)
+
+        # TODO : Add support for reranking multiple fields
+        if self.rerank_endpoint is not None and query_string and query_field:
+            text = [[document.doc, \
+                self.return_doc(document.doc)\
+                    .get(query_field.replace("*",""))] \
+                for document in scoreDocs.scoreDocs]
+
+            scoreDocs = self.reranker.rerank(query_string, text)
+
+            return_docs = []
+            for x in scoreDocs:
+                for y in text:
+                    if x[1] == y[1]:
+                        return_docs.append(\
+                                (self.return_doc(y[0]),x[0]) )
+                        break
+        else:
+            return_docs = [ (self.return_doc(file.doc), file.score) \
+                for file in scoreDocs.scoreDocs]
+
+            scoreDocs = [ [doc[1], doc[0].get(query_field)] \
+                for doc in return_docs]
+        
+        if self.debug:
+            if query_field.endswith("*"):
+                # mapper from text to doc
+                fields = [
+                        "question_variation_1",
+                        "question_variation_0",
+                        "answer",
+                    ]
+            else:
+                # only show qa
+                fields = [
+                        "Master_Answer",
+                    ]
+            scoreDocs = []
+            for doc in return_docs:
+                text = doc[0].get(query_field.replace('*',""))
+                for field in fields:
+                    text += " ||| " + doc[0].get(field)
+                scoreDocs.append([doc[1],text])
+
+        if return_json:
+            jsonDocs = self.convert_to_json(scoreDocs)
+            return jsonDocs
+        else:
+            return scoreDocs
+# TODO : Write Tests
+if __name__ == '__main__':
+    SearchEngineTest = SolrSearchEngine(
+            rerank_endpoint=RE_RANK_ENDPOINT,
+            variation_generator_config=[
+                # VariationGenerator(\
+                # path="./variation_generation/variation_generator_model_weights/model.ckpt-1004000",
+                # max_length=5),   #variation_generator
+                None,
+                ["keywords","subject1"] #fields_to_expand
+            ],
+            synonym_config=[
+                True, #use_wordnet
+                True, #use_syblist
+                "./synonym_expansion/syn_test.txt" #synlist path
+            ]
+        )
+
+    SearchEngineTest.indexFolder("./test_data")
+
+    boosting_tokens = {
+                        "subject_1_immunization": ["Generic"],
+                        "subject_2_vaccination_general": ["Booster"],
+                        "subject_person": ["Unknown"],
+                    }
+
+    query_string = "I got the varicella booster 2 months ago and when I recently got my blood titers drawn it "
+    
+    search_query = SearchEngineTest.build_query(\
+            query_string, \
+            boosting_tokens,\
+            "OR_QUERY",
+            field="question"
+        )
+
+    results = SearchEngineTest.search(search_query, "test", "variation")
+
+    pdb.set_trace()
+    # query_string = "contents one"
+    # query = QueryParser("contents", StandardAnalyzer() ).parse(query_string)
+    
+    # hits = SearchEngineTest.search(query, \
+    #     query_string=query_string, query_field="contents")
+    # print("%s total matching documents." % len(hits))
+
+    # for doc in hits:
+    #     print("contents : " , doc[1], "\nscore : ", doc[0])
+
+    # # No reranking
+    # indexDir = "./IndexFiles.Index"
+    # SearchEngineTest = SearchEngine(indexDir)
+    
+    # query_string = "contents of"
+    # query = QueryParser("contents", StandardAnalyzer() ).parse(query_string)
+    
+    # hits = SearchEngineTest.search(query, \
+    #     query_string=query_string, query_field="contents")
+    # print("%s total matching documents." % len(hits))
+
+    # for doc in hits:
+    #     print("contents : " , doc[1], "\nscore : ", doc[0])
+
+    # # Search the variation generated on
+    # indexDir = "./IndexFilesVariation.Index"
+    # SearchEngineTest = SearchEngine(indexDir)
+
+    # query_string = "keywords:love keywords_variation_0:love"
+    # query = QueryParser("contents", StandardAnalyzer() ).parse(query_string)
+    
+    # hits = SearchEngineTest.search(query, \
+    #     query_string=query_string, query_field="keywords")
+    # print("%s total matching documents." % len(hits))
+
+    # for doc in hits:
+    #     print("contents : " , doc[1], "\nscore : ", doc[0])
