@@ -133,6 +133,37 @@ class SolrSearchEngine:
                 question_with_variation = self.preprocess_question(question)
                 to_add.append(question_with_variation)
                 # pdb.set_trace()
+            print("sending to solr server")
+            client.add(to_add)
+            print("recieved by solr server")
+
+    def index_keywords(self, project_id, version_id, question_list):
+        """
+        This function adds QA pairs to the search index after generating 
+        variations
+
+        Inputs
+        ------
+        project_id : String
+            A string which states to the project being used
+        
+        version_id : String
+            A string which states to the version being used
+        """
+        proj_exists = self.ensure_collection_exists(project_id,version_id)
+        if proj_exists:
+            index_url = self.solr_server_link + "/solr/" + proj_exists
+            client = pysolr.Solr(index_url, always_commit=True)
+
+            to_add = []
+            for question in question_list:
+                if 'id' not in question.keys():
+                    question['id']=hashlib.sha512(question['question'].encode())\
+                        .hexdigest()
+                # pdb.set_trace()
+                question_with_variation = self.preprocess_question(question)
+                to_add.append(question_with_variation)
+                # pdb.set_trace()
             print("sending to server")
             client.add(to_add)
             print("sent to server")
