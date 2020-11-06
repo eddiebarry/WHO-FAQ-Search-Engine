@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, os, json, requests#, lucene
+import sys, os, json, requests, hashlib#, lucene
 import pysolr
 import pdb
 
@@ -124,12 +124,18 @@ class SolrSearchEngine:
             index_url = self.solr_server_link + "/solr/" + proj_exists
             client = pysolr.Solr(index_url, always_commit=True)
 
+            to_add = []
             for question in question_list:
                 if 'id' not in question.keys():
                     question['id']=hashlib.sha512(question['question'].encode())\
                         .hexdigest()
+                # pdb.set_trace()
                 question_with_variation = self.preprocess_question(question)
-                client.add(question_with_variation)
+                to_add.append(question_with_variation)
+                # pdb.set_trace()
+            print("sending to server")
+            client.add(to_add)
+            print("sent to server")
 
     def preprocess_question(self, question):
         processed_question = {}
@@ -153,6 +159,7 @@ class SolrSearchEngine:
                     if cached:
                         variations = [question[key] for key in field_names]
                     else:
+                        print("calculating variations")
                         variations = self.variation_generator.\
                             get_variations(question[x])
 
@@ -186,6 +193,7 @@ class SolrSearchEngine:
         Adds all the json files present in indexDir to the index
         """
         print( 'Writing directory to index')
+        question_list = []
         for filename in sorted(os.listdir(indexDir))[:10]:
             if not filename.endswith('.json'):
                 continue            
@@ -193,8 +201,8 @@ class SolrSearchEngine:
             
             f = open(os.path.join(indexDir,filename),)
             question = json.load(f)
-
-            self.index("test","variation",[question])
+            question_list.append(question)
+        self.index("10","20",question_list)
 
     def build_query(self, query_string, boosting_tokens, query_type, \
         field="contents", boost_val=1.05):
@@ -331,40 +339,35 @@ class SolrSearchEngine:
         if proj_exists:
             index_url = self.solr_server_link + "/solr/" + proj_exists
 
-        client = pysolr.Solr(index_url, always_commit=True)
         
+        client = pysolr.Solr(index_url, always_commit=True)
+
         if not proj_exists:
             return 400
 
         search_results = client.search(query)
-
-        pdb.set_trace()
+        search_results_list = [x for x in search_results]
 
         # TODO : Use BM25 with Anserini hyper params
         # scoreDocs = self.searcher.search(query, top_n)
 
         # TODO : Add support for reranking multiple fields
         if self.rerank_endpoint is not None and query_string and query_field:
-            text = [[document.doc, \
-                self.return_doc(document.doc)\
-                    .get(query_field.replace("*",""))] \
-                for document in scoreDocs.scoreDocs]
+            ids = {}
+            text = []
+
+            for document in search_results_list:
+                ids[document['question'][0]]=document['id']
+                text.append([document['id'],document['question'][0]])
 
             scoreDocs = self.reranker.rerank(query_string, text)
 
             return_docs = []
             for x in scoreDocs:
-                for y in text:
-                    if x[1] == y[1]:
-                        return_docs.append(\
-                                (self.return_doc(y[0]),x[0]) )
+                for y in search_results_list:
+                    if x[1]==y['question'][0]:
+                        return_docs.append([y,x[0]])
                         break
-        else:
-            return_docs = [ (self.return_doc(file.doc), file.score) \
-                for file in scoreDocs.scoreDocs]
-
-            scoreDocs = [ [doc[1], doc[0].get(query_field)] \
-                for doc in return_docs]
         
         if self.debug:
             if query_field.endswith("*"):
@@ -377,39 +380,37 @@ class SolrSearchEngine:
             else:
                 # only show qa
                 fields = [
-                        "Master_Answer",
+                        "answer",
                     ]
             scoreDocs = []
             for doc in return_docs:
-                text = doc[0].get(query_field.replace('*',""))
+                text = doc[0][query_field.replace('*',"")][0]
                 for field in fields:
-                    text += " ||| " + doc[0].get(field)
+                    text += " ||| " + doc[0][field][0]
                 scoreDocs.append([doc[1],text])
 
-        if return_json:
-            jsonDocs = self.convert_to_json(scoreDocs)
-            return jsonDocs
-        else:
-            return scoreDocs
+        return scoreDocs
+
 # TODO : Write Tests
 if __name__ == '__main__':
     SearchEngineTest = SolrSearchEngine(
             rerank_endpoint=RE_RANK_ENDPOINT,
             variation_generator_config=[
-                # VariationGenerator(\
-                # path="./variation_generation/variation_generator_model_weights/model.ckpt-1004000",
-                # max_length=5),   #variation_generator
-                None,
-                ["keywords","subject1"] #fields_to_expand
+                VariationGenerator(\
+                path="./variation_generation/variation_generator_model_weights/model.ckpt-1004000",
+                max_length=5),   #variation_generator
+                # None,
+                ["question"] #fields_to_expand
             ],
             synonym_config=[
                 True, #use_wordnet
                 True, #use_syblist
                 "./synonym_expansion/syn_test.txt" #synlist path
-            ]
+            ],
+            debug=True
         )
 
-    SearchEngineTest.indexFolder("./test_data")
+    SearchEngineTest.indexFolder("../tests/intermediate_results/vsn_data_variations")
 
     boosting_tokens = {
                         "subject_1_immunization": ["Generic"],
@@ -417,7 +418,7 @@ if __name__ == '__main__':
                         "subject_person": ["Unknown"],
                     }
 
-    query_string = "I got the varicella booster 2 months ago and when I recently got my blood titers drawn it "
+    query_string = "A recent study showed men with 5+ partners who perform unprotected oral sex have a higher risk of HPV-induced oral cancers"
     
     search_query = SearchEngineTest.build_query(\
             query_string, \
@@ -426,43 +427,9 @@ if __name__ == '__main__':
             field="question"
         )
 
-    results = SearchEngineTest.search(search_query, "test", "variation")
-
-    pdb.set_trace()
-    # query_string = "contents one"
-    # query = QueryParser("contents", StandardAnalyzer() ).parse(query_string)
-    
-    # hits = SearchEngineTest.search(query, \
-    #     query_string=query_string, query_field="contents")
-    # print("%s total matching documents." % len(hits))
-
-    # for doc in hits:
-    #     print("contents : " , doc[1], "\nscore : ", doc[0])
-
-    # # No reranking
-    # indexDir = "./IndexFiles.Index"
-    # SearchEngineTest = SearchEngine(indexDir)
-    
-    # query_string = "contents of"
-    # query = QueryParser("contents", StandardAnalyzer() ).parse(query_string)
-    
-    # hits = SearchEngineTest.search(query, \
-    #     query_string=query_string, query_field="contents")
-    # print("%s total matching documents." % len(hits))
-
-    # for doc in hits:
-    #     print("contents : " , doc[1], "\nscore : ", doc[0])
-
-    # # Search the variation generated on
-    # indexDir = "./IndexFilesVariation.Index"
-    # SearchEngineTest = SearchEngine(indexDir)
-
-    # query_string = "keywords:love keywords_variation_0:love"
-    # query = QueryParser("contents", StandardAnalyzer() ).parse(query_string)
-    
-    # hits = SearchEngineTest.search(query, \
-    #     query_string=query_string, query_field="keywords")
-    # print("%s total matching documents." % len(hits))
-
-    # for doc in hits:
-    #     print("contents : " , doc[1], "\nscore : ", doc[0])
+    results = SearchEngineTest.search(
+        query=search_query, 
+        project_id="10", 
+        version_id="20",
+        query_field="question*",
+        query_string=query_string)
