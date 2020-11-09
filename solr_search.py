@@ -124,7 +124,7 @@ class SolrSearchEngine:
                     index_url = self.solr_server_link + "/solr/" + collection
                     solr = pysolr.Solr(index_url)
 
-                    results = solr.search("*:*")
+                    results = solr.search("*:*",rows=200000000)
                     docs = [x for x in results]
                     
                     docs_to_add.extend(docs)
