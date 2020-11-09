@@ -105,6 +105,36 @@ class SolrSearchEngine:
             self.synonyms_boost_val = synonyms_boost_val
         
         self.debug = debug
+
+    def index_prev_versions(self, project_id, version_id, previous_versions):
+        # iterate over previous collections and add
+        link = self.solr_server_link + "/solr/admin/collections"
+        x = requests.get(link,{"action":"LIST","wt":"json"})
+    
+        prev_versions = [str(x) for x in previous_versions]
+
+        docs_to_add = []
+        print(x.json()['collections'], "is the prev collections")
+        for collection in x.json()['collections']:
+            if 'qa' in collection:
+                project_id_new, version_id_new = collection.split('_')[1:]
+
+                if str(project_id_new) == str(project_id) and str(version_id_new) in prev_versions:
+                    # copy all documents
+                    index_url = self.solr_server_link + "/solr/" + collection
+                    solr = pysolr.Solr(index_url)
+
+                    results = solr.search("*:*")
+                    docs = [x for x in results]
+                    
+                    docs_to_add.extend(docs)
+
+        for x in docs_to_add:
+            x.pop('_version_')
+
+        print("Adding ", len(docs_to_add), "documents from old versions to new index")
+        self.index(project_id,version_id,docs_to_add)
+
     
     def index(self, project_id, version_id, question_list):
         """
@@ -133,9 +163,9 @@ class SolrSearchEngine:
                 question_with_variation = self.preprocess_question(question)
                 to_add.append(question_with_variation)
                 # pdb.set_trace()
-            print("sending to solr server")
+            print("sending to solr server", proj_exists)
             client.add(to_add)
-            print("recieved by solr server")
+            print("recieved by solr server", proj_exists)
 
     def index_keywords(self, project_id, version_id, question_list):
         """
@@ -190,7 +220,6 @@ class SolrSearchEngine:
                     if cached:
                         variations = [question[key] for key in field_names]
                     else:
-                        print("calculating variations")
                         variations = self.variation_generator.\
                             get_variations(question[x])
 
