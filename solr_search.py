@@ -131,6 +131,8 @@ class SolrSearchEngine:
 
         for x in docs_to_add:
             x.pop('_version_')
+            for key in x:
+                x[key]=x[key][0]
 
         print("Adding ", len(docs_to_add), "documents from old versions to new index")
         self.index(project_id,version_id,docs_to_add)
