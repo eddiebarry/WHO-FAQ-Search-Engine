@@ -407,7 +407,7 @@ class SolrSearchEngine:
         if not proj_exists:
             return 400
 
-        search_results = client.search(query)
+        search_results = client.search(query,rows=top_n)
         search_results_list = [x for x in search_results]
 
         # TODO : Use BM25 with Anserini hyper params
