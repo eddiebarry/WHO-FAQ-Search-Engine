@@ -57,8 +57,8 @@ class SolrSearchEngine:
     """
 
     def __init__(self,\
-        solr_url="http://solr-test-zookeeper-cluster"+
-            ".apps.who.lxp.academy.who.int",\
+        solr_url="http://solr-cloud-staging-staging"+\
+            "-solr-cloud.apps.who.lxp.academy.who.int",\
         rerank_endpoint=None,\
         debug=False,\
         variation_generator_config=[False, None, [None]],\
