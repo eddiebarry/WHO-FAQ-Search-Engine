@@ -109,6 +109,7 @@ class SolrSearchEngine:
     def index_prev_versions(self, project_id, version_id, previous_versions):
         # iterate over previous collections and add
         link = self.solr_server_link + "/solr/admin/collections"
+        print(link, "is the prev link")
         x = requests.get(link,{"action":"LIST","wt":"json"})
     
         prev_versions = [str(x) for x in previous_versions]
