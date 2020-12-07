@@ -472,7 +472,7 @@ if __name__ == '__main__':
             debug=True
         )
 
-    SearchEngineTest.indexFolder("../tests/intermediate_results/vsn_data_variations")
+    SearchEngineTest.indexFolder("../accuracy_tests/intermediate_results/vsn_data_variations")
 
     boosting_tokens = {
                         "subject_1_immunization": ["Generic"],
