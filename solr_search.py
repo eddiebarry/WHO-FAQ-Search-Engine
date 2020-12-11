@@ -232,7 +232,7 @@ class SolrSearchEngine:
         collection_json = requests.get(\
             collection_url,{"action":"LIST","wt":"json"})#.json()
         
-        print(collection_json)
+        # print(collection_json)
         collection_json = collection_json.json()
         
         if collection_json['responseHeader']['status'] != 0:
