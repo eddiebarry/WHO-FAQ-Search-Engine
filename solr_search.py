@@ -247,21 +247,23 @@ class SolrSearchEngine:
                 {"action":"CREATE","name":new_name,"numShards":"2"})
         return new_name
     
-    def indexFolder(self, indexDir):
+    def indexFolder(self, indexDir,project_id=10, version_id=20):
         """
         Adds all the json files present in indexDir to the index
         """
         print( 'Writing directory to index')
         question_list = []
-        for filename in sorted(os.listdir(indexDir))[:10]:
+        for filename in sorted(os.listdir(indexDir)):
             if not filename.endswith('.json'):
                 continue            
-            print("adding", filename)
+            # print("adding", filename)
             
             f = open(os.path.join(indexDir,filename),)
             question = json.load(f)
             question_list.append(question)
-        self.index("10","20",question_list)
+
+        # pdb.set_trace()
+        self.index(project_id,version_id,question_list)
 
     def build_query(self, query_string, boosting_tokens, query_type, \
         field="contents", boost_val=1.05):
@@ -406,6 +408,7 @@ class SolrSearchEngine:
 
         search_results = client.search(query,rows=top_n)
         search_results_list = [x for x in search_results]
+        # pdb.set_trace()
 
         # TODO : Use BM25 with Anserini hyper params
         # scoreDocs = self.searcher.search(query, top_n)
