@@ -21,7 +21,7 @@ class ApiReranker():
 
 
 if __name__ == '__main__':    
-    from config import RE_RANK_ENDPOINT
+    from rerank_config import RE_RANK_ENDPOINT
     #################### Reranker ####################
     reranker =  ApiReranker(
         endpoint=RE_RANK_ENDPOINT

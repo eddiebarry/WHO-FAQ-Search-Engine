@@ -1,23 +1,17 @@
-#!/usr/bin/env python
-
-import sys, os, json, requests, hashlib#, lucene
+import sys, os, json, requests, hashlib
 import pysolr
 import pdb
 
-# from java.nio.file import Paths
-# from org.apache.lucene.analysis.standard import StandardAnalyzer
-# from org.apache.lucene.index import DirectoryReader
-# from org.apache.lucene.queryparser.classic import QueryParser
-# from org.apache.lucene.store import SimpleFSDirectory
-# from org.apache.lucene.search import IndexSearcher
-
 from rerank.ApiReranker import ApiReranker
-from rerank.config import RE_RANK_ENDPOINT
+from rerank.rerank_config import RE_RANK_ENDPOINT
 from variation_generation.variation_generator import VariationGenerator
 from synonym_expansion.synonym_expander import SynonymExpander
 
+# Importing constants
+from dotenv import load_dotenv
+load_dotenv()
 
-# TODO : Migrate to solr when scaling
+
 class SolrSearchEngine:
     """ 
     A solr based search class
@@ -57,8 +51,7 @@ class SolrSearchEngine:
     """
 
     def __init__(self,\
-        solr_url="http://solr-cloud-staging-staging"+\
-            "-solr-cloud.apps.who.lxp.academy.who.int",\
+        solr_url=os.getenv("SOLR_ENDPOINT"),\
         rerank_endpoint=None,\
         debug=False,\
         variation_generator_config=[False, None, [None]],\
