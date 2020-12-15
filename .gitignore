@@ -1,6 +1,7 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 query_expansion/query_expander_model_weights/
+experiments/CORPUS/
 *.py[cod]
 *$py.class
 
