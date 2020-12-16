@@ -39,7 +39,7 @@ class VariationGenerator:
         
         self.max_length = max_length
         self.num_variations = num_variations
-        print("variation finished loading)
+        print("variation finished loading")
 
     def get_variations(self, sent, num_variations=None):
         """
