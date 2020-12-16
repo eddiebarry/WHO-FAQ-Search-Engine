@@ -28,15 +28,18 @@ class VariationGenerator:
         self.tokenizer = T5Tokenizer.from_pretrained('t5-base')
         config = T5Config.from_pretrained('t5-base')
         
+        print("Reached before model loading")
         # TODO : Add model weight download
         # self.model = torch.load(path, map_location=self.device)
         self.model = T5ForConditionalGeneration.from_pretrained(\
             path, from_tf=True, config=config)
+        print("Model weights loaded")
         self.model.to(self.device)
         self.model.eval()
         
         self.max_length = max_length
         self.num_variations = num_variations
+        print("variation finished loading)
 
     def get_variations(self, sent, num_variations=None):
         """
