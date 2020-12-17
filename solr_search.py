@@ -440,18 +440,18 @@ class SolrSearchEngine:
                         "question_variation_1",
                         "question_variation_0",
                         "answer",
+                        "answer_formatted"
                     ]
             else:
                 # only show qa
                 fields = [
                         "answer",
+                        "answer_formatted"
                     ]
             scoreDocs = []
             for doc in return_docs:
                 text = doc[0][query_field.replace('*',"")][0]
                 for field in fields:
-                    if self.use_markdown and field=="answer":
-                        field="answer_formatted"
                     text += " ||| " + doc[0][field][0]
                 scoreDocs.append([doc[1],text])
 
