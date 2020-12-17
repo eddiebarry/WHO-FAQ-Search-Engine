@@ -54,6 +54,7 @@ class SolrSearchEngine:
         solr_url=os.getenv("SOLR_ENDPOINT"),\
         rerank_endpoint=None,\
         debug=False,\
+        use_markdown=False,\
         variation_generator_config=[False, None, [None]],\
         synonyms_boost_val=0.5,\
         synonym_config=[
@@ -98,6 +99,7 @@ class SolrSearchEngine:
             self.synonyms_boost_val = synonyms_boost_val
         
         self.debug = debug
+        self.use_markdown = use_markdown
 
     def index_prev_versions(self, project_id, version_id, previous_versions):
         # iterate over previous collections and add
@@ -448,6 +450,8 @@ class SolrSearchEngine:
             for doc in return_docs:
                 text = doc[0][query_field.replace('*',"")][0]
                 for field in fields:
+                    if self.use_markdown and field=="answer":
+                        field="answer_formatted"
                     text += " ||| " + doc[0][field][0]
                 scoreDocs.append([doc[1],text])
 
