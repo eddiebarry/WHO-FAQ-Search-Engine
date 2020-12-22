@@ -55,6 +55,7 @@ class SolrSearchEngine:
         rerank_endpoint=None,\
         debug=False,\
         use_markdown=False,\
+        use_rm3=False,\
         variation_generator_config=[False, None, [None]],\
         synonyms_boost_val=0.5,\
         synonym_config=[
@@ -100,6 +101,7 @@ class SolrSearchEngine:
         
         self.debug = debug
         self.use_markdown = use_markdown
+        self.use_rm3 = use_rm3
 
     def index_prev_versions(self, project_id, version_id, previous_versions):
         # iterate over previous collections and add
@@ -157,44 +159,17 @@ class SolrSearchEngine:
                 if 'id' not in question.keys():
                     question['id']=hashlib.sha512(question['question'].encode())\
                         .hexdigest()
-                # pdb.set_trace()
+
+                if self.use_rm3:
+                    question['para_text_bm']=question['question']
+                    question['para_text_ql']=question['question']
+                
                 question_with_variation = self.preprocess_question(question)
                 to_add.append(question_with_variation)
-                # pdb.set_trace()
+            
             print("sending to solr server", proj_exists)
             client.add(to_add)
             print("recieved by solr server", proj_exists)
-
-    def index_keywords(self, project_id, version_id, question_list):
-        """
-        This function adds QA pairs to the search index after generating 
-        variations
-
-        Inputs
-        ------
-        project_id : String
-            A string which states to the project being used
-        
-        version_id : String
-            A string which states to the version being used
-        """
-        proj_exists = self.ensure_collection_exists(project_id,version_id)
-        if proj_exists:
-            index_url = self.solr_server_link + "/solr/" + proj_exists
-            client = pysolr.Solr(index_url, always_commit=True)
-
-            to_add = []
-            for question in question_list:
-                if 'id' not in question.keys():
-                    question['id']=hashlib.sha512(question['question'].encode())\
-                        .hexdigest()
-                # pdb.set_trace()
-                question_with_variation = self.preprocess_question(question)
-                to_add.append(question_with_variation)
-                # pdb.set_trace()
-            print("sending to server")
-            client.add(to_add)
-            print("sent to server")
 
     def preprocess_question(self, question):
         processed_question = {}
@@ -234,7 +209,6 @@ class SolrSearchEngine:
         collection_json = requests.get(\
             collection_url,{"action":"LIST","wt":"json"})#.json()
         
-        # print(collection_json)
         collection_json = collection_json.json()
         
         if collection_json['responseHeader']['status'] != 0:
@@ -245,8 +219,32 @@ class SolrSearchEngine:
         new_name = "qa_"+str(project_id)+"_"+str(version_id)
         if new_name not in all_collections:
             # Create a collection if collection doesnt exist
-            x = requests.get(collection_url,\
-                {"action":"CREATE","name":new_name,"numShards":"2"})
+            if self.use_rm3:
+                #First create a custom configset
+                headers = {
+                    'Content-Type': 'application/octet-stream',
+                }
+                configName = new_name
+                params = (
+                    ('action', 'UPLOAD'),
+                    ('name', configName),
+                )
+
+                data = open('/usr/src/WHOA-FAQ-Answer-Project/WHO-FAQ-Search-Engine/myconfigset.zip', 'rb').read()
+                response = requests.post(self.solr_server_link \
+                    +'/solr/admin/configs', 
+                    headers=headers, 
+                    params=params, 
+                    data=data)
+
+                x = requests.get(collection_url,\
+                {
+                    "action":"CREATE","name":new_name,"numShards":"2",
+                    "collection.configName":configName
+                })
+            else:
+                x = requests.get(collection_url,\
+                    {"action":"CREATE","name":new_name,"numShards":"2"})
         return new_name
     
     def indexFolder(self, indexDir,project_id=10, version_id=20):
@@ -295,31 +293,78 @@ class SolrSearchEngine:
 
         # TODO : sanitize query string sp that false queries dont break
         # the system. Prevent sql njection type attacks
-        synonyms = None
         query_string = query_string.replace("?","").replace("(","")\
                 .replace(")","").replace("-","").replace("\"","").replace("'","").strip()
-        
-        # Ask against field
-        new_field = field+":"
-        qs = ""
-        for x in query_string.split(" "):
-            qs+= new_field + "\""+ x + "\" "
 
-        query_string = qs
         if query_type == "OR_QUERY":
+            synonyms = None
+
+            # Ask against field
+            new_field = field+":"
+            qs = ""
+            for x in query_string.split(" "):
+                qs+= new_field + "\""+ x + "\" "
+
+            query_string = qs
             # TODO : add ability to have a per field unique boost value
             if self.debug:
                 query_string, synonyms = \
                     self.get_or_query_string(query_string, \
                     boosting_tokens, boost_val=boost_val, field=field)
             else:
-                query_string = \
+                query_string, _ = \
                     self.get_or_query_string(query_string, \
                     boosting_tokens, boost_val=boost_val, field=field)
+
+        if query_type == "RM3_QUERY":
+            query_string, synonyms = self.get_rm3_query_string(
+                query_string, \
+                boosting_tokens, \
+                field=field)
 
         if self.debug:
             return query_string, synonyms
         return query_string
+
+    def get_rm3_query_string(self, query_string, boosting_tokens, field):
+        """
+        Converts the user query string and boosting tokens into a long 
+        RM3 query
+        
+        The format of the boosting tokens is
+        boosting_tokens = {
+            "keywords":["love"],    
+            "subject1":["care"]
+        }
+
+        Inputs
+        ------
+        query_string : String
+            The string input by the user
+        boosting_tokens : Dictionary
+            The dictionary of tokens which need to be boosted according
+            to the format specified above. The key of the dictionary is
+            the field while the value is the token
+        """
+        boost_string = ""
+        # if boost_val:
+        for x in boosting_tokens:
+            for token in boosting_tokens[x]:
+                if token == "":
+                    continue
+                boost_string = boost_string + " " + str(token)
+
+        #TODO : Check Better methods of generating queries
+        if self.synonym_config:
+            synonyms = self.synonym_expander.return_synonyms(query_string)
+            if len(synonyms) > 0:
+                qs = ""
+                for x in synonyms:
+                    qs+= x.strip("\"") + " "
+
+                query_string = query_string + " "+ qs 
+
+        return (query_string + boost_string).replace('/','\/'), synonyms
 
     def get_or_query_string(self, query_string, boosting_tokens, boost_val, field):
         """
@@ -344,9 +389,9 @@ class SolrSearchEngine:
             The amount of boosting that must be added per boosting token
         """
 
+        boost_string = ""
         if boost_val:
             # TODO : Boost a token according to a per field value
-            boost_string = ""
             for x in boosting_tokens:
                 for token in boosting_tokens[x]:
                     if token == "":
@@ -355,23 +400,20 @@ class SolrSearchEngine:
                     str(x).replace(" ","_") + ":\"" + str(token) + "\"^" + \
                         str(boost_val)
 
-            #TODO : Check Better methods of generating queries
-            if self.synonym_config:
-                synonyms = self.synonym_expander.return_synonyms(query_string)
-                if len(synonyms) > 0:
-                    qs = ""
-                    new_field = field+":"
-                    for x in synonyms:
-                        qs+= new_field + x + " "
+        #TODO : Check Better methods of generating queries
+        if self.synonym_config:
+            synonyms = self.synonym_expander.return_synonyms(query_string)
+            if len(synonyms) > 0:
+                qs = ""
+                new_field = field+":"
+                for x in synonyms:
+                    qs+= new_field + x + " "
 
-                    query_string = query_string + \
-                        " OR (" + qs + ")^" + \
-                        str(self.synonyms_boost_val)
-            
-                if self.debug:
-                    return (query_string + boost_string).replace('/','\/'), synonyms
+                query_string = query_string + \
+                    " OR (" + qs + ")^" + \
+                    str(self.synonyms_boost_val)
 
-            return (query_string + boost_string).replace('/','\/')
+        return (query_string + boost_string).replace('/','\/'), synonyms
 
     def search(self, query, project_id, version_id, top_n=50, return_json=False, \
         query_string=None, query_field=None):
@@ -402,19 +444,26 @@ class SolrSearchEngine:
         if proj_exists:
             index_url = self.solr_server_link + "/solr/" + proj_exists
 
-        
-        client = pysolr.Solr(index_url, always_commit=True)
-
         if not proj_exists:
             return 400
 
-        search_results = client.search(query,rows=top_n)
-        search_results_list = [x for x in search_results]
-        # pdb.set_trace()
+        if self.use_rm3 and index_url:
+            new_url = index_url + '/anserini'
+            response = requests.get(new_url,{"q":query})
+            data = response.json()
+            docs = data['docs']['docs']
+            
+            for idx, x in enumerate(docs):
+                for key in x:
+                    x[key] = [x[key]]
+                x['id']=str(idx)
 
-        # TODO : Use BM25 with Anserini hyper params
-        # scoreDocs = self.searcher.search(query, top_n)
-
+            search_results_list = [x for x in docs]            
+        else:
+            client = pysolr.Solr(index_url, always_commit=True)
+            search_results = client.search(query,rows=top_n)
+            search_results_list = [x for x in search_results]  
+        
         # TODO : Add support for reranking multiple fields
         if self.rerank_endpoint is not None and query_string and query_field:
             ids = {}
@@ -460,7 +509,7 @@ class SolrSearchEngine:
 # TODO : Write Tests
 if __name__ == '__main__':
     SearchEngineTest = SolrSearchEngine(
-            rerank_endpoint=RE_RANK_ENDPOINT,
+            rerank_endpoint=RE_RANK_ENDPOINT+"/api/v1/reranking",
             variation_generator_config=[
                 VariationGenerator(\
                 path="./variation_generation/variation_generator_model_weights/model.ckpt-1004000",
@@ -473,10 +522,11 @@ if __name__ == '__main__':
                 True, #use_syblist
                 "./synonym_expansion/syn_test.txt" #synlist path
             ],
-            debug=True
+            debug=True,
         )
 
-    SearchEngineTest.indexFolder("../accuracy_tests/intermediate_results/vsn_data_variations")
+    SearchEngineTest.indexFolder(
+        "../accuracy_tests/intermediate_results/vsn_data_formatted")
 
     boosting_tokens = {
                         "subject_1_immunization": ["Generic"],
@@ -484,18 +534,70 @@ if __name__ == '__main__':
                         "subject_person": ["Unknown"],
                     }
 
-    query_string = "A recent study showed men with 5+ partners who perform unprotected oral sex have a higher risk of HPV-induced oral cancers"
+    query_string = "I work in an independent living site, am I required to have a flu shot?"
     
-    search_query = SearchEngineTest.build_query(\
+    search_query, _ = SearchEngineTest.build_query(\
             query_string, \
             boosting_tokens,\
             "OR_QUERY",
             field="question"
         )
 
+    print("search query is ", search_query)
+
     results = SearchEngineTest.search(
         query=search_query, 
         project_id="10", 
         version_id="20",
+        query_field="question*",
+        query_string=query_string)
+
+
+    # RM3 Test
+    SearchEngineTest = SolrSearchEngine(
+            rerank_endpoint=RE_RANK_ENDPOINT+"/api/v1/reranking",
+            variation_generator_config=[
+                VariationGenerator(\
+                path="./variation_generation/variation_generator_model_weights/model.ckpt-1004000",
+                max_length=5),   #variation_generator
+                # None,
+                ["question"] #fields_to_expand
+            ],
+            synonym_config=[
+                False,
+                False,
+                # True, #use_wordnet
+                # True, #use_syblist
+                "./synonym_expansion/syn_test.txt" #synlist path
+            ],
+            debug=True,
+            use_rm3=True
+        )
+
+    SearchEngineTest.indexFolder(
+        "../accuracy_tests/intermediate_results/vsn_data_formatted",
+        version_id=30)
+
+    boosting_tokens = {
+                        "subject_1_immunization": ["Generic"],
+                        "subject_2_vaccination_general": ["Booster"],
+                        "subject_person": ["Unknown"],
+                    }
+
+    query_string = "I work in an independent living site, am I required to have a flu shot?"
+    
+    search_query, _ = SearchEngineTest.build_query(\
+            query_string, \
+            boosting_tokens,\
+            "RM3_QUERY",
+            field="question"
+        )
+
+    print("search query is ", search_query)
+
+    results = SearchEngineTest.search(
+        query=search_query, 
+        project_id="10", 
+        version_id="30",
         query_field="question*",
         query_string=query_string)
