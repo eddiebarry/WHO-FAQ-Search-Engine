@@ -229,7 +229,7 @@ class SolrSearchEngine:
                     ('action', 'UPLOAD'),
                     ('name', configName),
                 )
-
+                
                 data = open('/usr/src/WHOA-FAQ-Answer-Project/WHO-FAQ-Search-Engine/myconfigset.zip', 'rb').read()
                 response = requests.post(self.solr_server_link \
                     +'/solr/admin/configs', 
@@ -309,24 +309,23 @@ class SolrSearchEngine:
             # TODO : add ability to have a per field unique boost value
             if self.debug:
                 query_string, synonyms = \
-                    self.get_or_query_string(query_string, \
+                    self.get_or_query_string(query_string,
                     boosting_tokens, boost_val=boost_val, field=field)
             else:
                 query_string, _ = \
-                    self.get_or_query_string(query_string, \
+                    self.get_or_query_string(query_string,
                     boosting_tokens, boost_val=boost_val, field=field)
 
         if query_type == "RM3_QUERY":
             query_string, synonyms = self.get_rm3_query_string(
-                query_string, \
-                boosting_tokens, \
-                field=field)
+                query_string,
+                boosting_tokens)
 
         if self.debug:
             return query_string, synonyms
         return query_string
 
-    def get_rm3_query_string(self, query_string, boosting_tokens, field):
+    def get_rm3_query_string(self, query_string, boosting_tokens):
         """
         Converts the user query string and boosting tokens into a long 
         RM3 query
@@ -354,17 +353,7 @@ class SolrSearchEngine:
                     continue
                 boost_string = boost_string + " " + str(token)
 
-        #TODO : Check Better methods of generating queries
-        if self.synonym_config:
-            synonyms = self.synonym_expander.return_synonyms(query_string)
-            if len(synonyms) > 0:
-                qs = ""
-                for x in synonyms:
-                    qs+= x.strip("\"") + " "
-
-                query_string = query_string + " "+ qs 
-
-        return (query_string + boost_string).replace('/','\/'), synonyms
+        return (query_string + boost_string).replace('/','\/'), False
 
     def get_or_query_string(self, query_string, boosting_tokens, boost_val, field):
         """
