@@ -230,12 +230,13 @@ class SolrSearchEngine:
                     ('name', configName),
                 )
                 
-                data = open('/usr/src/WHOA-FAQ-Answer-Project/WHO-FAQ-Search-Engine/myconfigset.zip', 'rb').read()
+                data = open('/usr/src/WHOA-FAQ-Answer-Project/myconfigset.zip', 'rb').read()
                 response = requests.post(self.solr_server_link \
                     +'/solr/admin/configs', 
                     headers=headers, 
                     params=params, 
                     data=data)
+                # pdb.set_trace()
 
                 x = requests.get(collection_url,\
                 {
@@ -440,18 +441,63 @@ class SolrSearchEngine:
             new_url = index_url + '/anserini'
             response = requests.get(new_url,{"q":query})
             data = response.json()
+            # pdb.set_trace()
             docs = data['docs']['docs']
             
             for idx, x in enumerate(docs):
                 for key in x:
                     x[key] = [x[key]]
                 x['id']=str(idx)
-
-            search_results_list = [x for x in docs]            
+            search_results_list = [x for x in docs]
+            """
+            the resonse contains these keys
+            dict_keys(
+                [
+                    'question', 
+                    'answer',
+                    'answer_formatted', 
+                    'question_variation_0', 
+                    'question_variation_1', 
+                    'question_variation_2', 
+                    'score', 
+                    'id'
+                ]
+            )
+            """          
+            # pdb.set_trace()
         else:
             client = pysolr.Solr(index_url, always_commit=True)
             search_results = client.search(query,rows=top_n)
-            search_results_list = [x for x in search_results]  
+            
+            # pdb.set_trace()
+            search_results_list = [x for x in search_results]
+
+            max_score = search_results.raw_response['response']['maxScore']
+            # pdb.set_trace() 
+            if max_score < 7.5:
+                return "Not present"
+            #TODO: get scores as well 
+            """
+            the resonse contains these keys
+            dict_keys(
+                [
+                    'answer', 
+                    'answer_formatted', 
+                    'disease_1', 
+                    'disease_2', 
+                    'question_variation_0', 
+                    'question_variation_1', 
+                    'question_variation_2', 
+                    'question', 
+                    'subject_1_immunization', 
+                    'vaccine_1', 
+                    'who_is_writing_this', 
+                    'id', 
+                    '_version_'
+                ]
+            )
+            """
+            
         
         # TODO : Add support for reranking multiple fields
         if self.rerank_endpoint is not None and query_string and query_field:
@@ -470,6 +516,12 @@ class SolrSearchEngine:
                     if x[1]==y['question'][0]:
                         return_docs.append([y,x[0]])
                         break
+            # pdb.set_trace() 
+        else:
+            #TODO:setup so that score is correct
+            # return document as well as score
+            return_docs = []
+
         
         if self.debug:
             if query_field.endswith("*"):
