@@ -25,8 +25,8 @@ class VariationGenerator:
         """
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        self.tokenizer = T5Tokenizer.from_pretrained('t5-base', cache_dir="new_cache_dir/")
-        config = T5Config.from_pretrained('t5-base', cache_dir="new_cache_dir/")
+        self.tokenizer = T5Tokenizer.from_pretrained("/usr/src/WHOA-FAQ-Answer-Project/WHO-FAQ-Search-Engine/variation_generation/models/")
+        config = T5Config.from_json_file('/usr/src/WHOA-FAQ-Answer-Project/WHO-FAQ-Search-Engine/variation_generation/T5config.json')
         
         # TODO : Add model weight download
         # self.model = torch.load(path, map_location=self.device)
@@ -90,4 +90,12 @@ if __name__ == '__main__':
         ['why do we need immunization records for school', \
          'why do school nurses get records for immunizations from children',\
          'why is immunization record needed for child'])
+    # tokenizer = T5Tokenizer.from_pretrained('t5-base', cache_dir="new_cache_dir/")
+    # config = T5Config.from_pretrained('t5-base', cache_dir="new_cache_dir/")
+
+    # tokenizer.save_pretrained("./models/")
+    # config.to_json_file("./config.json")
+
+    # token = T5Tokenizer.from_pretrained("./models/")
+    # config = T5Config.from_json_file("./config.json")
 
