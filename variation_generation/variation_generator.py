@@ -25,8 +25,8 @@ class VariationGenerator:
         """
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        self.tokenizer = T5Tokenizer.from_pretrained('t5-base')
-        config = T5Config.from_pretrained('t5-base')
+        self.tokenizer = T5Tokenizer.from_pretrained('t5-base', cache_dir="new_cache_dir/")
+        config = T5Config.from_pretrained('t5-base', cache_dir="new_cache_dir/")
         
         # TODO : Add model weight download
         # self.model = torch.load(path, map_location=self.device)
