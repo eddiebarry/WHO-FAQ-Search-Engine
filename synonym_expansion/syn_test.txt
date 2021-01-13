@@ -1,4 +1,4 @@
 apple, granny smith, washington red
 boy, child, son, daughter
 measles, MMR, Mumps, Rubella
-vaccine, vaccination, immunization, immunize, shot
+vaccine, vaccination, immunization, immunize, vaccines, vaccinations, immunizations, shots
