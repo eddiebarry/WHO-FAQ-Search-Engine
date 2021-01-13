@@ -1,4 +1,4 @@
-import spacy
+import spacy, pdb
 
 from spacy_wordnet.wordnet_annotator import WordnetAnnotator 
 
@@ -107,6 +107,15 @@ class SynonymExpander:
                         '{}'.format(\
                             (' '.join(set(lemmas_for_synset)))).replace('_', ' ')\
                         )
+
+        if self.use_synlist:
+            sentence = self.nlp(sent)
+            for word in sentence:
+                if word.text in self.word_to_name_dict.keys():
+                    key = self.word_to_name_dict[word.text]
+                    enriched_sentence.extend(self.name_to_syn_dict[key])
+        
+        # pdb.set_trace()
 
         # Let's see our enriched sentence
         return ' '.join(enriched_sentence)
