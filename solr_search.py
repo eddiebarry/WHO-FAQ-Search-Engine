@@ -230,7 +230,7 @@ class SolrSearchEngine:
                     ('name', configName),
                 )
                 
-                data = open('/usr/src/WHOA-FAQ-Answer-Project/myconfigset.zip', 'rb').read()
+                data = open('/usr/src/WHOA-FAQ-Answer-Project/WHO-FAQ-Search-Engine/configs/myconfigset.zip', 'rb').read()
                 response = requests.post(self.solr_server_link \
                     +'/solr/admin/configs', 
                     headers=headers, 
@@ -240,12 +240,12 @@ class SolrSearchEngine:
 
                 x = requests.get(collection_url,\
                 {
-                    "action":"CREATE","name":new_name,"numShards":"2",
-                    "collection.configName":configName
+                    "action":"CREATE","name":new_name,"numShards":"1",
+                    "collection.configName":configName, "replication_factor":"2"
                 })
             else:
                 x = requests.get(collection_url,\
-                    {"action":"CREATE","name":new_name,"numShards":"2"})
+                    {"action":"CREATE","name":new_name,"numShards":"1", "replication_factor":"2"})
         return new_name
     
     def indexFolder(self, indexDir,project_id=10, version_id=20):
