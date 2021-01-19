@@ -1,5 +1,5 @@
 import requests
-import json, os
+import json, os, pdb
 from typing import List, Mapping, Tuple, Union, Iterable, Optional, Any
 # Importing constants
 from dotenv import load_dotenv
@@ -17,6 +17,7 @@ class ApiReranker():
             "query": qry,
             "texts": txts,
         }
+        # pdb.set_trace()
         response = requests.get(self.endpoint, json=json.dumps(params))
         scoreDocs = response.json()['scoreDocs']
         return scoreDocs
