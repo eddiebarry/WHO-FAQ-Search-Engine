@@ -467,36 +467,39 @@ class SolrSearchEngine:
             # pdb.set_trace()
         else:
             client = pysolr.Solr(index_url, always_commit=True)
-            search_results = client.search(query,rows=top_n)
+            search_results = client.search(query,fl='*,score',rows=top_n)
             
-            # pdb.set_trace()
+            
             search_results_list = [x for x in search_results]
-
-            max_score = search_results.raw_response['response']['maxScore']
-            # pdb.set_trace() 
-            if max_score < 7.5:
-                return "Not present"
-            #TODO: get scores as well 
-            """
-            the resonse contains these keys
-            dict_keys(
-                [
-                    'answer', 
-                    'answer_formatted', 
-                    'disease_1', 
-                    'disease_2', 
-                    'question_variation_0', 
-                    'question_variation_1', 
-                    'question_variation_2', 
-                    'question', 
-                    'subject_1_immunization', 
-                    'vaccine_1', 
-                    'who_is_writing_this', 
-                    'id', 
-                    '_version_'
-                ]
-            )
-            """
+            if search_results.raw_response['response']['numFound'] > 0:
+                max_score = search_results.raw_response['response']['docs'][0]['score']
+                # pdb.set_trace() 
+                if max_score < 7.5:
+                    return "Not present"
+                #TODO: get scores as well 
+                """
+                the resonse contains these keys
+                dict_keys(
+                    [
+                        'answer', 
+                        'answer_formatted', 
+                        'disease_1', 
+                        'disease_2', 
+                        'question_variation_0', 
+                        'question_variation_1', 
+                        'question_variation_2', 
+                        'question', 
+                        'subject_1_immunization', 
+                        'vaccine_1', 
+                        'who_is_writing_this', 
+                        'id', 
+                        'score',
+                        '_version_'
+                    ]
+                )
+                """
+            else:
+                search_results_list = []
             
         
         # TODO : Add support for reranking multiple fields
