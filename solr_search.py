@@ -447,6 +447,7 @@ class SolrSearchEngine:
             for idx, x in enumerate(docs):
                 for key in x:
                     x[key] = [x[key]]
+                x['score']=x['score'][0]
                 x['id']=str(idx)
             search_results_list = [x for x in docs]
             """
@@ -500,32 +501,34 @@ class SolrSearchEngine:
                 """
             else:
                 search_results_list = []
-            
         
         # TODO : Add support for reranking multiple fields
         if self.rerank_endpoint is not None and query_string and query_field:
             ids = {}
             text = []
 
+            pdb.set_trace()
             for document in search_results_list:
                 ids[document['question'][0]]=document['id']
                 text.append([document['id'],document['question'][0]])
 
             scoreDocs = self.reranker.rerank(query_string, text)
 
-            return_docs = []
-            for x in scoreDocs:
-                for y in search_results_list:
-                    if x[1]==y['question'][0]:
-                        return_docs.append([y,x[0]])
-                        break
-            # pdb.set_trace() 
+            # case where gpu is rate limited
+            if not scoreDocs:
+                return_docs = [[x,x['score']] for x in search_results_list]
+            else:
+                return_docs = []
+                for x in scoreDocs:
+                    for y in search_results_list:
+                        if x[1]==y['question'][0]:
+                            return_docs.append([y,x[0]])
+                            break
         else:
             #TODO:setup so that score is correct
             # return document as well as score
-            return_docs = []
+            return_docs = [[x,x['score']] for x in search_results_list]
 
-        
         if self.debug:
             if query_field.endswith("*"):
                 # mapper from text to doc
@@ -541,13 +544,11 @@ class SolrSearchEngine:
                         "answer",
                         "answer_formatted"
                     ]
-            scoreDocs = []
             for doc in return_docs:
                 text = doc[0][query_field.replace('*',"")][0]
                 for field in fields:
                     text += " ||| " + doc[0][field][0]
                 scoreDocs.append([doc[1],text])
-
         return scoreDocs
 
 # TODO : Write Tests

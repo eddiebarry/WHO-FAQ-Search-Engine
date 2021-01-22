@@ -19,6 +19,9 @@ class ApiReranker():
         }
         # pdb.set_trace()
         response = requests.get(self.endpoint, json=json.dumps(params))
+        if response.status_code == 429:
+            return False
+            
         scoreDocs = response.json()['scoreDocs']
         return scoreDocs
 
