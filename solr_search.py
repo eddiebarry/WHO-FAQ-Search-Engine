@@ -507,7 +507,7 @@ class SolrSearchEngine:
             ids = {}
             text = []
 
-            pdb.set_trace()
+            # pdb.set_trace()
             for document in search_results_list:
                 ids[document['question'][0]]=document['id']
                 text.append([document['id'],document['question'][0]])
