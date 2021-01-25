@@ -465,7 +465,6 @@ class SolrSearchEngine:
                 ]
             )
             """          
-            # pdb.set_trace()
         else:
             client = pysolr.Solr(index_url, always_commit=True)
             search_results = client.search(query,fl='*,score',rows=top_n)
@@ -474,10 +473,9 @@ class SolrSearchEngine:
             search_results_list = [x for x in search_results]
             if search_results.raw_response['response']['numFound'] > 0:
                 max_score = search_results.raw_response['response']['docs'][0]['score']
-                # pdb.set_trace() 
+
                 if max_score < 7.5:
                     return "Not present"
-                #TODO: get scores as well 
                 """
                 the resonse contains these keys
                 dict_keys(
@@ -502,6 +500,7 @@ class SolrSearchEngine:
             else:
                 search_results_list = []
         
+        print("reranking")
         # TODO : Add support for reranking multiple fields
         if self.rerank_endpoint is not None and query_string and query_field:
             ids = {}
@@ -530,6 +529,7 @@ class SolrSearchEngine:
             return_docs = [[x,x['score']] for x in search_results_list]
 
         if self.debug:
+            scoreDocs=[]
             if query_field.endswith("*"):
                 # mapper from text to doc
                 fields = [
@@ -548,7 +548,9 @@ class SolrSearchEngine:
                 text = doc[0][query_field.replace('*',"")][0]
                 for field in fields:
                     text += " ||| " + doc[0][field][0]
+
                 scoreDocs.append([doc[1],text])
+
         return scoreDocs
 
 # TODO : Write Tests
