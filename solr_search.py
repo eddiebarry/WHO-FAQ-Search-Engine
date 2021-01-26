@@ -102,6 +102,7 @@ class SolrSearchEngine:
         self.debug = debug
         self.use_markdown = use_markdown
         self.use_rm3 = use_rm3
+        self.session = requests.Session()
 
     def index_prev_versions(self, project_id, version_id, previous_versions):
         # iterate over previous collections and add
@@ -439,9 +440,8 @@ class SolrSearchEngine:
 
         if self.use_rm3 and index_url:
             new_url = index_url + '/anserini'
-            response = requests.get(new_url,{"q":query})
+            response = self.session.get(new_url,{"q":query})
             data = response.json()
-            # pdb.set_trace()
             docs = data['docs']['docs']
             
             for idx, x in enumerate(docs):
