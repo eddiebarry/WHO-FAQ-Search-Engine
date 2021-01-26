@@ -440,7 +440,7 @@ class SolrSearchEngine:
 
         if self.use_rm3 and index_url:
             new_url = index_url + '/anserini'
-            response = self.session.get(new_url,{"q":query})
+            response = self.session.get(new_url,data={"q":query})
             data = response.json()
             docs = data['docs']['docs']
             
@@ -468,9 +468,8 @@ class SolrSearchEngine:
         else:
             client = pysolr.Solr(index_url, always_commit=True)
             search_results = client.search(query,fl='*,score',rows=top_n)
-            
-            
             search_results_list = [x for x in search_results]
+            
             if search_results.raw_response['response']['numFound'] > 0:
                 max_score = search_results.raw_response['response']['docs'][0]['score']
 
