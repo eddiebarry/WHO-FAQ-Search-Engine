@@ -11,14 +11,15 @@ class ApiReranker():
             endpoint = os.getenv("RE_RANK_ENDPOINT")+"/api/v1/reranking",
         ):
         self.endpoint = endpoint
+        self.session = requests.Session()
 
     def rerank(self, qry: str, txts: List[str]) -> List[Any]:
         params = {
             "query": qry,
             "texts": txts,
         }
-        # pdb.set_trace()
-        response = requests.get(self.endpoint, json=json.dumps(params))
+        
+        response = self.session.get(self.endpoint, json=json.dumps(params))
         if response.status_code == 429:
             return False
             
