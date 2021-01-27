@@ -22,7 +22,7 @@ class SynonymExpander:
     """
     
     def __init__(self, use_wordnet=True,  \
-            use_synlist=False, synlist_path="./synlist"):
+            use_synlist=False, synlist_path="./syn_test.txt"):
         """
         Setup Synonym Expander with spacy pipleline for synonym replacement
 
