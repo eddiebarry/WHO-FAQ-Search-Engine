@@ -499,7 +499,7 @@ class SolrSearchEngine:
             else:
                 search_results_list = []
         
-        print("reranking")
+        # print("reranking")
         # TODO : Add support for reranking multiple fields
         if self.rerank_endpoint is not None and query_string and query_field:
             ids = {}
