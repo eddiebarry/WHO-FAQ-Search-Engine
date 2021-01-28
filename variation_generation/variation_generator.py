@@ -23,6 +23,25 @@ class VariationGenerator:
             The default number of variations that must be generated.
             Can be overriden by the calling function
         """
+
+        # self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        # self.tokenizer = T5Tokenizer.from_pretrained("/usr/src/WHOA-FAQ-Answer-Project/WHO-FAQ-Search-Engine/variation_generation/models/")
+        # config = T5Config.from_json_file('/usr/src/WHOA-FAQ-Answer-Project/WHO-FAQ-Search-Engine/variation_generation/T5config.json')
+        
+        # # TODO : Add model weight download
+        # # self.model = torch.load(path, map_location=self.device)
+        # self.model = T5ForConditionalGeneration.from_pretrained(\
+        #     path, from_tf=True, config=config)
+        # self.model.to(self.device)
+        # self.model.eval()
+        
+        self.path = path
+        self.max_length = max_length
+        self.num_variations = num_variations
+        self.initialised = False
+
+    def custom_init(self):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.tokenizer = T5Tokenizer.from_pretrained("/usr/src/WHOA-FAQ-Answer-Project/WHO-FAQ-Search-Engine/variation_generation/models/")
@@ -31,12 +50,14 @@ class VariationGenerator:
         # TODO : Add model weight download
         # self.model = torch.load(path, map_location=self.device)
         self.model = T5ForConditionalGeneration.from_pretrained(\
-            path, from_tf=True, config=config)
+            self.path, from_tf=True, config=config)
         self.model.to(self.device)
         self.model.eval()
         
         self.max_length = max_length
         self.num_variations = num_variations
+        self.initialised = True
+
 
     def get_variations(self, sent, num_variations=None):
         """
@@ -47,6 +68,9 @@ class VariationGenerator:
         num_variations : Integer
             The number of variations we want to generate for a given sentence
         """
+        if not self.initialised:
+            self.custom_init()
+
         input_ids = self.tokenizer.encode(sent, return_tensors='pt')\
             .to(self.device)
         
