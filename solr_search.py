@@ -115,8 +115,9 @@ class SolrSearchEngine:
         docs_to_add = []
         print(x.json()['collections'], "is the prev collections")
         for collection in x.json()['collections']:
+
             if 'qa' in collection:
-                project_id_new, version_id_new = collection.split('_')[1:]
+                project_id_new, version_id_new = collection.split('_')[1:3]
 
                 if str(project_id_new) == str(project_id) and str(version_id_new) in prev_versions:
                     # copy all documents
@@ -472,8 +473,8 @@ class SolrSearchEngine:
             
             if search_results.raw_response['response']['numFound'] > 0:
                 max_score = search_results.raw_response['response']['docs'][0]['score']
-
-                if max_score < 7.5:
+                
+                if max_score < 3:
                     return "Not present"
                 """
                 the resonse contains these keys
