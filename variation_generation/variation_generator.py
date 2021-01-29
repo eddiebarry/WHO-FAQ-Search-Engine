@@ -54,8 +54,8 @@ class VariationGenerator:
         self.model.to(self.device)
         self.model.eval()
         
-        self.max_length = max_length
-        self.num_variations = num_variations
+        self.max_length = self.max_length
+        self.num_variations = self.num_variations
         self.initialised = True
 
 
