@@ -13,7 +13,7 @@ class ApiReranker():
         ):
         self.endpoint = endpoint
         self.cache_endpoint = cache_endpoint
-        self.session = requests.Session()
+        # self.session = requests.Session()
 
     def rerank(self, qry: str, txts: List[str]) -> List[Any]:
         params = {
@@ -22,10 +22,10 @@ class ApiReranker():
         }
 
         # check in cache
-        response = self.session.get(self.cache_endpoint, json=json.dumps(params))
+        response = requests.get(self.cache_endpoint, json=json.dumps(params))
         if response.status_code == 210 or response.status_code == 429:
             # check in actual
-            response = self.session.get(self.endpoint, json=json.dumps(params))
+            response = requests.get(self.endpoint, json=json.dumps(params))
             if response.status_code == 429:
                 return False
         
