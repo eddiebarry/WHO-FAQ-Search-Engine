@@ -23,12 +23,12 @@ class ApiReranker():
 
         # check in cache
         response = self.session.get(self.cache_endpoint, json=json.dumps(params))
-        if response.status_code == 500 or response.status_code == 429:
+        if response.status_code == 210 or response.status_code == 429:
             # check in actual
             response = self.session.get(self.endpoint, json=json.dumps(params))
             if response.status_code == 429:
                 return False
-            
+        
         scoreDocs = response.json()['scoreDocs']
         return scoreDocs
 

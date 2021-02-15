@@ -243,8 +243,9 @@ class SolrSearchEngine:
                 x = requests.get(collection_url,\
                 {
                     "action":"CREATE","name":new_name,"numShards":"1",
-                    "collection.configName":configName, "replication_factor":"2"
+                    "collection.configName":configName, "replicationFactor":"4"
                 })
+                # pdb.set_trace()
             else:
                 x = requests.get(collection_url,\
                     {"action":"CREATE","name":new_name,"numShards":"1", "replication_factor":"2"})
