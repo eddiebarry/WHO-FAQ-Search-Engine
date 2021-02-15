@@ -12,6 +12,7 @@ class ApiReranker():
             cache_endpoint = os.getenv("RE_RANK_ENDPOINT")+"/api/v1/reranking-cache",
         ):
         self.endpoint = endpoint
+        self.cache_endpoint = cache_endpoint
         self.session = requests.Session()
 
     def rerank(self, qry: str, txts: List[str]) -> List[Any]:
