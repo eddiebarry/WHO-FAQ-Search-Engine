@@ -9,6 +9,7 @@ class ApiReranker():
     def __init__(
             self,
             endpoint = os.getenv("RE_RANK_ENDPOINT")+"/api/v1/reranking",
+            cache_endpoint = os.getenv("RE_RANK_ENDPOINT")+"/api/v1/reranking-cache",
         ):
         self.endpoint = endpoint
         self.session = requests.Session()
@@ -18,10 +19,14 @@ class ApiReranker():
             "query": qry,
             "texts": txts,
         }
-        
-        response = self.session.get(self.endpoint, json=json.dumps(params))
-        if response.status_code == 429:
-            return False
+
+        # check in cache
+        response = self.session.get(self.cache_endpoint, json=json.dumps(params))
+        if response.status_code == 500 or response.status_code == 429:
+            # check in actual
+            response = self.session.get(self.endpoint, json=json.dumps(params))
+            if response.status_code == 429:
+                return False
             
         scoreDocs = response.json()['scoreDocs']
         return scoreDocs
