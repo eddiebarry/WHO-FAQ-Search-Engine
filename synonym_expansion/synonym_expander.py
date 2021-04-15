@@ -1,6 +1,7 @@
 import spacy, pdb
 
 from spacy_wordnet.wordnet_annotator import WordnetAnnotator 
+import en_core_web_sm
 
 class SynonymExpander:
     """
@@ -45,7 +46,9 @@ class SynonymExpander:
             Where each row is a set of synonyms
         """
         # Load an spacy model (supported models are "es" and "en") 
-        nlp = spacy.load('en')
+
+        nlp = en_core_web_sm.load()
+        # nlp = spacy.load('en')
         nlp.add_pipe(WordnetAnnotator(nlp.lang), after='tagger')
 
         self.nlp = nlp
