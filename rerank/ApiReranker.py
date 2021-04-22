@@ -22,15 +22,18 @@ class ApiReranker():
         }
 
         # check in cache
-        response = requests.get(self.cache_endpoint, json=json.dumps(params))
-        if response.status_code == 210 or response.status_code == 429:
-            # check in actual
-            response = requests.get(self.endpoint, json=json.dumps(params))
-            if response.status_code != 200:
-                return False
-        
-        scoreDocs = response.json()['scoreDocs']
-        return scoreDocs
+        try:
+            response = requests.get(self.cache_endpoint, json=json.dumps(params))
+            if response.status_code == 210 or response.status_code == 429:
+                # check in actual
+                response = requests.get(self.endpoint, json=json.dumps(params))
+                if response.status_code == 429:
+                    return False
+            
+            scoreDocs = response.json()['scoreDocs']
+            return scoreDocs
+        except:
+            return False
 
 
 if __name__ == '__main__':    
