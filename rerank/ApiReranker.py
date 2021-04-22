@@ -26,7 +26,7 @@ class ApiReranker():
         if response.status_code == 210 or response.status_code == 429:
             # check in actual
             response = requests.get(self.endpoint, json=json.dumps(params))
-            if response.status_code == 429:
+            if response.status_code != 200:
                 return False
         
         scoreDocs = response.json()['scoreDocs']
