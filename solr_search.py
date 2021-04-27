@@ -51,7 +51,7 @@ class SolrSearchEngine:
     """
 
     def __init__(self,\
-        solr_url=os.getenv("SOLR_ENDPOINT"),\
+        solr_url=os.getenv("SOLR_SERVICE_SERVICE_HOST")+":"+os.getenv("SOLR_SERVICE_SERVICE_PORT"),\
         rerank_endpoint=None,\
         debug=False,\
         use_markdown=False,\
