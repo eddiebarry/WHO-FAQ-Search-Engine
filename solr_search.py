@@ -51,9 +51,7 @@ class SolrSearchEngine:
     """
 
     def __init__(self,\
-        solr_url="http://"\
-            + os.getenv("SOLR_HOST")\
-            +":"+os.getenv("SOLR_PORT"),\
+        solr_url="defult.com",\
         rerank_endpoint=None,\
         debug=False,\
         use_markdown=False,\
