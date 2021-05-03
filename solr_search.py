@@ -205,6 +205,23 @@ class SolrSearchEngine:
 
         return processed_question
 
+    def check_collection_exists(self, project_id, version_id):
+        collection_url = self.solr_server_link + "/solr/admin/collections"
+        # Check collection names
+        collection_json = requests.get(\
+            collection_url,{"action":"LIST","wt":"json"})#.json()
+        
+        collection_json = collection_json.json()
+        
+        if collection_json['responseHeader']['status'] != 0:
+            return False
+
+        all_collections = collection_json['collections']
+
+        new_name = "qa_"+str(project_id)+"_"+str(version_id)
+
+        return new_name in all_collections
+
     def ensure_collection_exists(self, project_id, version_id):
         collection_url = self.solr_server_link + "/solr/admin/collections"
         # Check collection names
